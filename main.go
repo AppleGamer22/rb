@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,10 +11,10 @@ import (
 	"time"
 )
 
-// type FileMetadata struct {
-// 	SourcePath string
-// 	TargetPath string
-// }
+type FileMetadata struct {
+	SourcePath string
+	TargetPath string
+}
 
 func GetFilePaths(source, target string) ([]FileMetadata, error) {
 	var files []FileMetadata
@@ -55,16 +56,23 @@ func SaveMetadataToFile(files []FileMetadata) error {
 }
 
 func main() {
-	var cwd, err1 = os.Getwd()
+	var sourceFlag = flag.String("source", "", "")
+	var targetFlag = flag.String("target", "", "")
+	flag.Parse()
+	var source, err1 = filepath.Abs(string(*sourceFlag))
 	if err1 != nil {
-		log.Fatal(err1)
+		log.Fatal("source path is invalid")
 	}
-	var files, err2 = GetFilePaths("/home/applegamer22/Documents/scr-web/storage", cwd)
+	var target, err2 = filepath.Abs(string(*targetFlag))
 	if err2 != nil {
-		log.Fatal(err2)
+		log.Fatal("target path is not valid")
 	}
-	var err3 = SaveMetadataToFile(files)
+	var files, err3 = GetFilePaths(source, target)
 	if err3 != nil {
+		log.Fatal(err3)
+	}
+	var err4 = SaveMetadataToFile(files)
+	if err4 != nil {
 		log.Fatal(nil)
 	}
 }
