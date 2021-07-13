@@ -26,8 +26,8 @@ func main() {
 	if err4 != nil {
 		log.Fatal(err4)
 	}
-	var err5 = MarkAsDone("files.json", 0)
-	if err5 != nil {
-		log.Fatal(err5)
+	var err error = Backup("files.json")
+	if err != nil {
+		log.Fatal(err)
 	}
 }

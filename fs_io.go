@@ -9,6 +9,11 @@ import (
 	"os"
 )
 
+func BackupLog(fileNum, numberOfFiles int, file FileMetadata) {
+	fmt.Printf("file #%d / %d (%s -> %s)\n", fileNum, numberOfFiles,
+		file.SourcePath, file.TargetPath)
+}
+
 func Backup(filePath string) error {
 	var data, err = ioutil.ReadFile(filePath)
 
@@ -32,6 +37,7 @@ func Backup(filePath string) error {
 		if err != nil {
 			return err
 		}
+		BackupLog(i+1, len(files), file)
 	}
 	return nil
 }
