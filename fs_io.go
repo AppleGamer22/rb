@@ -9,6 +9,33 @@ import (
 	"os"
 )
 
+func Backup(filePath string) error {
+	var data, err = ioutil.ReadFile(filePath)
+
+	if err != nil {
+		return err
+	}
+
+	var files []FileMetadata
+	err = json.Unmarshal(data, &files)
+	if err != nil {
+		return err
+	}
+
+	for i, file := range files {
+		err = Copy(file)
+		if err != nil {
+			return err
+		}
+		files[i].Done = true
+		err = SaveMetadataToFile(files, filePath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Copy(file FileMetadata) error {
 	fileStat, err := os.Stat(file.SourcePath)
 	if err != nil {
