@@ -3,8 +3,38 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 )
+
+func Copy(file FileMetadata) error {
+	fileStat, err := os.Stat(file.SourcePath)
+	if err != nil {
+		return err
+	}
+	if !fileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", file.SourcePath)
+	}
+
+	src, err := os.Open(file.SourcePath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dest, err := os.Create(file.TargetPath)
+
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+	_, err = io.Copy(dest, src)
+
+	return err
+
+}
 
 func SaveMetadataToFile(files []FileMetadata, path string) error {
 	var json, err1 = json.MarshalIndent(files, "", "\t")
@@ -39,4 +69,3 @@ func MarkAsDone(path string, i int) error {
 	}
 	return nil
 }
-
