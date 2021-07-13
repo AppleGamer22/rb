@@ -21,6 +21,7 @@ func GetFilePaths(source, target string) ([]FileMetadata, error) {
 			var metadata = FileMetadata{
 				SourcePath: path,
 				TargetPath: fmt.Sprintf("%s/%s", target, relativePath),
+				Done: false,
 			}
 			files = append(files, metadata)
 		}

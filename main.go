@@ -26,8 +26,8 @@ func main() {
 	if err4 != nil {
 		log.Fatal(err4)
 	}
-	// var err5 = RemoveMetadataFromFile("files.json")
-	// if err5 != nil {
-	// 	log.Fatal(err5)
-	// }
+	var err5 = MarkAsDone("files.json", 0)
+	if err5 != nil {
+		log.Fatal(err5)
+	}
 }

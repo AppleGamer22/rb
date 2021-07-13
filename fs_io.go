@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 )
 
@@ -17,7 +18,7 @@ func SaveMetadataToFile(files []FileMetadata, path string) error {
 	return nil
 }
 
-func RemoveMetadataFromFile(path string) error {
+func MarkAsDone(path string, i int) error {
 	var data, err1 = ioutil.ReadFile(path)
 	if err1 != nil {
 		return err1
@@ -27,14 +28,15 @@ func RemoveMetadataFromFile(path string) error {
 	if err2 != nil {
 		return err2
 	}
-	println(len(metadata))
-	if len(metadata) > 0 {
-		metadata = metadata[1:]
+	if len(metadata) > 0 && 0 <= i && i < len(metadata) {
+		metadata[i].Done = true
+	} else {
+		return errors.New("index is out of scope")
 	}
-	println(len(metadata))
 	var err3 = SaveMetadataToFile(metadata, path)
 	if err3 != nil {
 		return err3
 	}
 	return nil
 }
+
