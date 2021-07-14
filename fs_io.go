@@ -10,19 +10,27 @@ import (
 	"time"
 )
 
+func GetLogFromFile(path string) (Log, error) {
+	var data, err = ioutil.ReadFile(path)
+
+	if err != nil {
+		return Log{}, err
+	}
+
+	var filesLog Log
+	err = json.Unmarshal(data, &filesLog)
+	if err != nil {
+		return Log{}, err
+	}
+	return filesLog, nil
+}
+
 func BackupLog(fileNum, numberOfFiles int, file FileMetadata) {
 	fmt.Printf("file #%d / %d (%s -> %s)\n", fileNum, numberOfFiles, file.SourcePath, file.TargetPath)
 }
 
 func Backup(filePath, targetPath string) error {
-	var data, err = ioutil.ReadFile(filePath)
-
-	if err != nil {
-		return err
-	}
-
-	var filesLog Log
-	err = json.Unmarshal(data, &filesLog)
+	var filesLog, err = GetLogFromFile(filePath)
 	if err != nil {
 		return err
 	}
@@ -34,7 +42,7 @@ func Backup(filePath, targetPath string) error {
 			return err
 		}
 		filesLog.Files[i].Done = true
-		err = SaveMetadataToFile(filesLog.Files, filePath, i + 1, i == len(filesLog.Files) - 1)
+		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files)-1)
 		if err != nil {
 			return err
 		}
