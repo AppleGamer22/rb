@@ -26,7 +26,7 @@ func main() {
 	if err4 != nil {
 		log.Fatal(err4)
 	}
-	var err error = Backup("files.json")
+	var err error = Backup("files.json", target)
 	if err != nil {
 		log.Fatal(err)
 	}
