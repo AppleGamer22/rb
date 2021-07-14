@@ -22,7 +22,7 @@ func main() {
 	if err3 != nil {
 		log.Fatal(err3)
 	}
-	var err4 = SaveMetadataToFile(files, "files.json")
+	var err4 = SaveMetadataToFile(files, "files.json", 0, false)
 	if err4 != nil {
 		log.Fatal(err4)
 	}
