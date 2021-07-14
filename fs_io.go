@@ -42,7 +42,7 @@ func Backup(filePath, targetPath string) error {
 			return err
 		}
 		filesLog.Files[i].Done = true
-		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files)-1)
+		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files) - 1, time.Now())
 		if err != nil {
 			return err
 		}
@@ -83,12 +83,12 @@ func Copy(file FileMetadata, targetPath string) error {
 	return err
 }
 
-func SaveMetadataToFile(files []FileMetadata, path string, filesCopied int, keepTime bool) error {
+func SaveMetadataToFile(files []FileMetadata, path string, filesCopied int, keepTime bool, date time.Time) error {
 	var dataLog = Log{Files: files, FilesCopied: filesCopied}
 	if keepTime {
 		dataLog.LastBackupTime = time.Now()
 	} else {
-		dataLog.LastBackupTime = time.Unix(0, 0)
+		dataLog.LastBackupTime = date
 	}
 	var json, err1 = json.MarshalIndent(dataLog, "", "\t")
 	if err1 != nil {
