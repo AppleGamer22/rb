@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 func BackupLog(fileNum, numberOfFiles int, file FileMetadata) {
@@ -43,14 +44,20 @@ func Backup(filePath string) error {
 }
 
 func Copy(file FileMetadata) error {
-	fileStat, err := os.Stat(file.SourcePath)
+	fileStatSource, err := os.Stat(file.SourcePath)
 	if err != nil {
 		return err
 	}
-	if !fileStat.Mode().IsRegular() {
+	if !fileStatSource.Mode().IsRegular() {
 		return fmt.Errorf("%s is not a regular file", file.SourcePath)
 	}
-
+	_, err = os.Stat(file.TargetPath)
+	if err != nil {
+		err := os.MkdirAll(filepath.Dir(file.TargetPath), 0755)
+		if err != nil {
+			return err
+		}
+	}
 	src, err := os.Open(file.SourcePath)
 	if err != nil {
 		return err
