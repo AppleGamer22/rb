@@ -17,15 +17,9 @@ func PrepareData(source, target string, logsFlag *string) (string, int, error) {
 		fmt.Println("logs file path is not valid ", logsPath, "\n Error: ", err)
 		os.Exit(1)
 	}
-	// var hasLogsFlag = false
-	// for _, arg := range flag.Args() {
-	// 	if arg == "--logs" {
-	// 		hasLogsFlag = true
-	// 		break
-	// 	}
-	// }
-	fmt.Println(logsPath)
-	if logsPath != "" {
+	cwd, _ := os.Getwd()
+	fmt.Println(logsPath, flag.Args())
+	if logsPath != "" && logsPath != cwd {
 		stats, err := os.Stat(logsPath)
 		if err != nil {
 			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
