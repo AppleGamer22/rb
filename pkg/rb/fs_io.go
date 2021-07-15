@@ -21,14 +21,14 @@ func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int
 	}
 	defer fileSourcesLog.Close()
 	var reader = bufio.NewReader(fileSourcesLog)
-	var targetsLogPath = fmt.Sprintf("rb_target_%d-%d-%d_%d:%d:%d.csv", startTime.Day(), startTime.Month(), startTime.Year(), startTime.Hour(), startTime.Minute(), startTime.Second())
+	var targetsLogPath = fmt.Sprintf("rb_target_%d-%d-%d_%d.%d.%d.csv", startTime.Day(), startTime.Month(), startTime.Year(), startTime.Hour(), startTime.Minute(), startTime.Second())
 	fileTargetsLog, err := os.Create(targetsLogPath)
 	if err != nil {
 		return err
 	}
 	defer fileTargetsLog.Close()
 	var writer = bufio.NewWriter(fileTargetsLog)
-	for i := 1;; i++ {
+	for i := 1; ; i++ {
 		data, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
