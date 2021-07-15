@@ -2,18 +2,17 @@ package rb
 
 import "time"
 
-type Status string
-const (
-	Success Status = "success"
-	Fail Status = "fail"
-	Unchanged Status = "unchanged"
-)
 
 type FileMetadata struct {
 	SourcePath string `json:"source"`
 	TargetPath string `json:"target"`
 	CompletionStatus bool `json:"status"`
 	ChangedStatus bool `json:"changes"`
+}
+
+type SourceLog struct {
+	BackupStartTime time.Time `json:"startTime"`
+	SourceFiles []string `json:"files"`
 }
 
 type Log struct {

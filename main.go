@@ -11,10 +11,6 @@ import (
 )
 
 func main() {
-	if len(flag.Args()) == 0 {
-		ShowHelp()
-		return
-	}
 	var logsFlag = flag.String("logs", "", "")
 	flag.Parse()
 	var source, err1 = filepath.Abs(flag.Arg(0))
@@ -27,6 +23,13 @@ func main() {
 	}
 	logsPath := string(*logsFlag)
 
+	if len(flag.Args()) == 0 {
+		ShowHelp()
+		return
+	}
+	var now = time.Now()
+	var fileCount int
+	var newLogsPath = fmt.Sprintf("rb_%d-%d-%d_%d:%d:%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
 	var files []rb.FileMetadata
 	if logsPath != "" {
 		logs, err := rb.GetLogFromFile(logsPath)
@@ -37,22 +40,19 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		var err4 = rb.SaveMetadataToFile(files, "files.json", 0, false, logs.LastBackupTime)
+		var err4 = rb.SaveMetadataToFile(files, newLogsPath, 0, false, logs.LastBackupTime)
 		if err4 != nil {
 			log.Fatal(err4)
 		}
 	} else {
-		logsPath = fmt.Sprintf("files%s.json", time.Now().String())
-		files, err2 = rb.GetFilePaths(source, target, logsPath)
+		var path, count, _, err2 = rb.GetFilePaths(source, target)
 		if err2 != nil {
 			log.Fatal(err2)
 		}
-		var err4 = rb.SaveMetadataToFile(files, "files.json", 0, false, time.Unix(0, 0))
-		if err4 != nil {
-			log.Fatal(err4)
-		}
+		newLogsPath = path
+		fileCount = count
 	}
-	var err = rb.Backup("files.json", target)
+	var err = rb.Backup(newLogsPath, source, target, fileCount, now)
 	if err != nil {
 		log.Fatal(err)
 	}
