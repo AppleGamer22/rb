@@ -6,6 +6,8 @@ import (
 	"log"
 	"path/filepath"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/pkg/rb"
 )
 
 func main() {
@@ -25,31 +27,32 @@ func main() {
 	}
 	logsPath := string(*logsFlag)
 
-	var files []FileMetadata
+	var files []rb.FileMetadata
 	if logsPath != "" {
-		logs, err := GetLogFromFile(logsPath)
+		logs, err := rb.GetLogFromFile(logsPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		files, err = GetFilePathsSinceDate(source, target, logs.LastBackupTime)
+		files, err = rb.GetFilePathsSinceDate(source, target, logs.LastBackupTime)
 		if err != nil {
 			log.Fatal(err)
 		}
-		var err4 = SaveMetadataToFile(files, "files.json", 0, false, logs.LastBackupTime)
+		var err4 = rb.SaveMetadataToFile(files, "files.json", 0, false, logs.LastBackupTime)
 		if err4 != nil {
 			log.Fatal(err4)
 		}
 	} else {
-		files, err2 = GetFilePaths(source, target)
+		logsPath = fmt.Sprintf("files%s.json", time.Now().String())
+		files, err2 = rb.GetFilePaths(source, target, logsPath)
 		if err2 != nil {
 			log.Fatal(err2)
 		}
-		var err4 = SaveMetadataToFile(files, "files.json", 0, false, time.Unix(0, 0))
+		var err4 = rb.SaveMetadataToFile(files, "files.json", 0, false, time.Unix(0, 0))
 		if err4 != nil {
 			log.Fatal(err4)
 		}
 	}
-	var err = Backup("files.json", target)
+	var err = rb.Backup("files.json", target)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package rb
 
 import (
 	"encoding/json"
@@ -41,7 +41,7 @@ func Backup(filePath, targetPath string) error {
 		if err != nil {
 			return err
 		}
-		filesLog.Files[i].Done = true
+		filesLog.Files[i].CompletionStatus = true
 		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files)-1, time.Now())
 		if err != nil {
 			return err

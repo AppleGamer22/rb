@@ -1,4 +1,4 @@
-package main
+package rb
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func GetFilePaths(source, target string) ([]FileMetadata, error) {
+func GetFilePaths(source, target, sourcesLogPath string) ([]FileMetadata, error) {
 	var files []FileMetadata
 	// var lastWeek = time.Now().Add(-24 * 7 * time.Hour)
 	var err = filepath.Walk(source, func(path string, info os.FileInfo, err1 error) error {
@@ -22,7 +22,7 @@ func GetFilePaths(source, target string) ([]FileMetadata, error) {
 			var metadata = FileMetadata{
 				SourcePath: path,
 				TargetPath: fmt.Sprintf("%s/%s", target, relativePath),
-				Done: false,
+				CompletionStatus: false,
 			}
 			files = append(files, metadata)
 		}
@@ -50,7 +50,7 @@ func GetFilePathsSinceDate(source, target string, date time.Time) ([]FileMetadat
 			var metadata = FileMetadata{
 				SourcePath: path,
 				TargetPath: fmt.Sprintf("%s/%s", target, relativePath),
-				Done: false,
+				CompletionStatus: false,
 			}
 			files = append(files, metadata)
 		}
