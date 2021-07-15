@@ -12,19 +12,20 @@ import (
 )
 
 func PrepareData(source, target string, logsFlag *string) (string, int, error) {
-	logsPath, err := filepath.Abs(string(*logsFlag))
+	logsPath, err := filepath.Abs(*logsFlag)
 	if err != nil {
 		fmt.Println("logs file path is not valid ", logsPath, "\n Error: ", err)
 		os.Exit(1)
 	}
-	var hasLogsFlag = false
-	for _, arg := range flag.Args() {
-		if arg == "--logs" {
-			hasLogsFlag = true
-			break
-		}
-	}
-	if hasLogsFlag {
+	// var hasLogsFlag = false
+	// for _, arg := range flag.Args() {
+	// 	if arg == "--logs" {
+	// 		hasLogsFlag = true
+	// 		break
+	// 	}
+	// }
+	fmt.Println(logsPath)
+	if logsPath != "" {
 		stats, err := os.Stat(logsPath)
 		if err != nil {
 			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
@@ -52,7 +53,6 @@ func main() {
 		ShowHelp()
 		return
 	}
-
 	source, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
 		fmt.Println("source path is invalid")
