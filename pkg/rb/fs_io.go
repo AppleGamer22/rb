@@ -65,6 +65,7 @@ func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int
 			return err4
 		}
 		writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetPath, modTime))
+		writer.Flush()
 		fmt.Println("done")
 	}
 	return nil
