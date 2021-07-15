@@ -12,14 +12,9 @@ import (
 )
 
 func PrepareData(source, target string, logsFlag *string) (string, int, error) {
-	logsPath, err := filepath.Abs(*logsFlag)
-	if err != nil {
-		fmt.Println("logs file path is not valid ", logsPath, "\n Error: ", err)
-		os.Exit(1)
-	}
-	cwd, _ := os.Getwd()
-	fmt.Println(logsPath, flag.Args())
-	if logsPath != "" && logsPath != cwd {
+	logsPath := *logsFlag
+	fmt.Println(logsPath) //DEBUG
+	if logsPath != "" {
 		stats, err := os.Stat(logsPath)
 		if err != nil {
 			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
