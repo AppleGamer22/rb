@@ -11,47 +11,65 @@ import (
 	"github.com/AppleGamer22/recursive-backup/pkg/rb"
 )
 
-func main() {
-	var logsFlag = flag.String("logs", "", "")
-	flag.Parse()
-	var source, err1 = filepath.Abs(flag.Arg(0))
-	if err1 != nil {
-		log.Fatal("source path is invalid")
+func PrepareData(source, target string, logsFlag *string) (string, int, error) {
+	logsPath, err := filepath.Abs(string(*logsFlag))
+	if err != nil {
+		fmt.Println("logs file path is not valid ", logsPath, "\n Error: ", err)
+		os.Exit(1)
 	}
-	var target, err2 = filepath.Abs(flag.Arg(1))
-	if err2 != nil {
-		log.Fatal("target path is not valid")
+	var hasLogsFlag = false
+	for _, arg := range flag.Args() {
+		if arg == "--logs" {
+			hasLogsFlag = true
+			break
+		}
 	}
-	logsPath := string(*logsFlag)
-
-	if len(flag.Args()) == 0 {
-		ShowHelp()
-		return
-	}
-	var now = time.Now()
-	var newLogsPath string
-	var fileCount int
-	if logsPath != "" {
+	if hasLogsFlag {
 		stats, err := os.Stat(logsPath)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
+			os.Exit(1)
 		}
 		path, count, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
 		if err != nil {
 			log.Fatal(err)
 		}
-		newLogsPath = path
-		fileCount = count
+		return path, count, nil
 	} else {
 		var path, count, _, err2 = rb.GetFilePaths(source, target)
 		if err2 != nil {
 			log.Fatal(err2)
 		}
-		newLogsPath = path
-		fileCount = count
+		return path, count, nil
 	}
-	fmt.Println(newLogsPath, source, target, fileCount, now)
-	var err = rb.Backup(newLogsPath, source, target, fileCount, now)
+}
+
+func main() {
+	var logsFlag = flag.String("logs", "", "--logs \"<logs JSON file path>\"")
+	flag.Parse()
+	
+	if len(flag.Args()) == 0 {
+		ShowHelp()
+		return
+	}
+
+	source, err := filepath.Abs(flag.Arg(0))
+	if err != nil {
+		fmt.Println("source path is invalid")
+		os.Exit(1)
+	}
+
+	target, err := filepath.Abs(flag.Arg(1))
+	if err != nil {
+		fmt.Println("target path is not valid")
+		os.Exit(1)
+	}
+	var startTime = time.Now()
+	newLogsFilePath, fileCount, err := PrepareData(source, target, logsFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = rb.Backup(newLogsFilePath, source, target, fileCount, startTime)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +80,7 @@ func ShowHelp() {
 	fmt.Println("For full backup:")
 	fmt.Println("\trb \"<source path>\" \"<target path>\"")
 	fmt.Println("For partial backup:")
-	fmt.Println("\trb \"<source path>\" \"<target path>\" --logs \"<logs JSON file path>\"")
+	fmt.Println("\trb --logs \"<logs JSON file path>\" \"<source path>\" \"<target path>\"")
 	fmt.Println("For usage guide:")
 	fmt.Println("\trb")
 }
