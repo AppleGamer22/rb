@@ -105,7 +105,7 @@ func SaveMetadataToFile(files []FileMetadata, path string, filesCopied int, keep
 }
 
 func WaitForDirectory(path string) {
-	fmt.Printf("Waiting for directory %s to be available...", path)
+	fmt.Printf("Waiting for directory %s to be available...\n", path)
 	var searching = true
 	for searching {
 		_, err := os.Stat(path)

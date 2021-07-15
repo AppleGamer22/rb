@@ -2,12 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 	"time"
 )
 
 func main() {
+	if len(flag.Args()) == 0 {
+		ShowHelp()
+		return
+	}
 	var logsFlag = flag.String("logs", "", "")
 	flag.Parse()
 	var source, err1 = filepath.Abs(flag.Arg(0))
@@ -48,4 +53,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func ShowHelp() {
+	fmt.Println("Usage:")
+	fmt.Println("For full backup:")
+	fmt.Println("\trb \"<source path>\" \"<target path>\"")
+	fmt.Println("For partial backup:")
+	fmt.Println("\trb \"<source path>\" \"<target path>\" --logs \"<logs JSON file path>\"")
+	fmt.Println("For usage guide:")
+	fmt.Println("\trb")
 }
