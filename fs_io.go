@@ -42,7 +42,7 @@ func Backup(filePath, targetPath string) error {
 			return err
 		}
 		filesLog.Files[i].Done = true
-		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files) - 1, time.Now())
+		err = SaveMetadataToFile(filesLog.Files, filePath, i+1, i == len(filesLog.Files)-1, time.Now())
 		if err != nil {
 			return err
 		}
@@ -55,6 +55,7 @@ func Copy(file FileMetadata, targetPath string) error {
 	fileStatSource, err := os.Stat(file.SourcePath)
 	if err != nil {
 		WaitForDirectory(targetPath)
+		return Copy(file, targetPath)
 	}
 	if !fileStatSource.Mode().IsRegular() {
 		return fmt.Errorf("%s is not a regular file", file.SourcePath)
@@ -63,7 +64,8 @@ func Copy(file FileMetadata, targetPath string) error {
 	if err != nil {
 		err := os.MkdirAll(filepath.Dir(file.TargetPath), 0755)
 		if err != nil {
-			return err
+			WaitForDirectory(targetPath)
+			return Copy(file, targetPath)
 		}
 	}
 	src, err := os.Open(file.SourcePath)
@@ -75,7 +77,8 @@ func Copy(file FileMetadata, targetPath string) error {
 	dest, err := os.Create(file.TargetPath)
 
 	if err != nil {
-		return err
+		WaitForDirectory(targetPath)
+		return Copy(file, targetPath)
 	}
 	defer dest.Close()
 	_, err = io.Copy(dest, src)
@@ -102,6 +105,7 @@ func SaveMetadataToFile(files []FileMetadata, path string, filesCopied int, keep
 }
 
 func WaitForDirectory(path string) {
+	fmt.Printf("Waiting for directory %s to be available...", path)
 	var searching = true
 	for searching {
 		_, err := os.Stat(path)
