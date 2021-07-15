@@ -2,30 +2,13 @@ package rb
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
-
-func GetLogFromFile(path string) (Log, error) {
-	var data, err = ioutil.ReadFile(path)
-
-	if err != nil {
-		return Log{}, err
-	}
-
-	var filesLog Log
-	err = json.Unmarshal(data, &filesLog)
-	if err != nil {
-		return Log{}, err
-	}
-	return filesLog, nil
-}
 
 func BackupLog(fileNum, numberOfFiles int, sourcePath, targetPath string) {
 	fmt.Printf("file #%d / %d (%s -> %s)\n", fileNum, numberOfFiles, sourcePath, targetPath)
@@ -46,23 +29,23 @@ func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int
 	defer fileTargetsLog.Close()
 	var writer = bufio.NewWriter(fileTargetsLog)
 	for i := 1;; i++ {
-		var data, err1 = reader.ReadString('\n')
-		if err1 == io.EOF {
+		data, err := reader.ReadString('\n')
+		if err == io.EOF {
 			break
 		}
 		var sourcePath = strings.Replace(string(data), "\n", "", -1)
-		var relativePath, err2 = filepath.Rel(sourcePathRoot, sourcePath)
-		if err2 != nil {
-			return err2
+		relativePath, err := filepath.Rel(sourcePathRoot, sourcePath)
+		if err != nil {
+			return err
 		}
-		var targetPath, err3 = filepath.Abs(fmt.Sprintf("%s/%s", targetPathRoot, relativePath))
-		if err3 != nil {
-			return err3
+		targetPath, err := filepath.Abs(fmt.Sprintf("%s/%s", targetPathRoot, relativePath))
+		if err != nil {
+			return err
 		}
 		BackupLog(i, fileCount, sourcePath, targetPath)
-		var modTime, err4 = Copy(sourcePath, targetPath, targetPathRoot)
-		if err4 != nil {
-			return err4
+		modTime, err := Copy(sourcePath, targetPath, targetPathRoot)
+		if err != nil {
+			return err
 		}
 		writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetPath, modTime))
 		writer.Flush()
@@ -103,24 +86,6 @@ func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, erro
 	defer dest.Close()
 	_, err = io.Copy(dest, src)
 	return fileStatSource.ModTime(), err
-}
-
-func SaveMetadataToFile(files []FileMetadata, path string, filesCopied int, keepTime bool, date time.Time) error {
-	var dataLog = Log{Files: files, FilesCopied: filesCopied}
-	if keepTime {
-		dataLog.LastBackupTime = time.Now()
-	} else {
-		dataLog.LastBackupTime = date
-	}
-	var json, err1 = json.MarshalIndent(dataLog, "", "\t")
-	if err1 != nil {
-		return err1
-	}
-	var err2 = ioutil.WriteFile(path, json, 0644)
-	if err2 != nil {
-		return err2
-	}
-	return nil
 }
 
 func WaitForDirectory(path string) {

@@ -37,9 +37,9 @@ func PrepareData(source, target string, logsFlag *string) (string, int, error) {
 		}
 		return path, count, nil
 	} else {
-		var path, count, _, err2 = rb.GetFilePaths(source, target)
-		if err2 != nil {
-			log.Fatal(err2)
+		path, count, _, err := rb.GetFilePaths(source, target)
+		if err != nil {
+			log.Fatal(err)
 		}
 		return path, count, nil
 	}

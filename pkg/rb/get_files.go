@@ -18,14 +18,14 @@ func GetFilePaths(source, target string) (string, int, time.Time, error) {
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	var count = 0
-	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err1 error) error {
-		if err1 != nil {
-			return err1
+	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
 		if !info.IsDir() {
-			var _, err3 = writer.WriteString(sourcePath + "\n")
-			if err3 != nil {
-				return err3
+			_, err := writer.WriteString(sourcePath + "\n")
+			if err != nil {
+				return err
 			}
 			writer.Flush()
 			count++;
@@ -45,14 +45,14 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, 
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	var count = 0
-	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err1 error) error {
-		if err1 != nil {
-			return err1
+	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
 		if !info.IsDir() && info.ModTime().After(date) {
-			var _, err3 = writer.WriteString(sourcePath + "\n")
-			if err3 != nil {
-				return err3
+			_, err := writer.WriteString(sourcePath + "\n")
+			if err != nil {
+				return err
 			}
 			writer.Flush()
 			count++;
