@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -28,22 +29,19 @@ func main() {
 		return
 	}
 	var now = time.Now()
+	var newLogsPath string
 	var fileCount int
-	var newLogsPath = fmt.Sprintf("rb_%d-%d-%d_%d:%d:%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
-	var files []rb.FileMetadata
 	if logsPath != "" {
-		logs, err := rb.GetLogFromFile(logsPath)
+		stats, err := os.Stat(logsPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		files, err = rb.GetFilePathsSinceDate(source, target, logs.LastBackupTime)
+		path, count, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
 		if err != nil {
 			log.Fatal(err)
 		}
-		var err4 = rb.SaveMetadataToFile(files, newLogsPath, 0, false, logs.LastBackupTime)
-		if err4 != nil {
-			log.Fatal(err4)
-		}
+		newLogsPath = path
+		fileCount = count
 	} else {
 		var path, count, _, err2 = rb.GetFilePaths(source, target)
 		if err2 != nil {
@@ -52,6 +50,7 @@ func main() {
 		newLogsPath = path
 		fileCount = count
 	}
+	fmt.Println(newLogsPath, source, target, fileCount, now)
 	var err = rb.Backup(newLogsPath, source, target, fileCount, now)
 	if err != nil {
 		log.Fatal(err)
