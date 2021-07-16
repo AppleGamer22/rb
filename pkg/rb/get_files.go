@@ -3,8 +3,10 @@ package rb
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -20,7 +22,15 @@ func GetFilePaths(source, target string) (string, int, time.Time, error) {
 	var count = 0
 	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
+			switch err.(type) {
+			case *fs.PathError:
+				return nil
+			default:
+				fmt.Println(err)
+				fmt.Printf("%T\n", err)
+				return err
+			}
 		}
 		if !info.IsDir() {
 			_, err := writer.WriteString(sourcePath + "\n")
@@ -29,6 +39,7 @@ func GetFilePaths(source, target string) (string, int, time.Time, error) {
 			}
 			writer.Flush()
 			count++
+			fmt.Println(sourcePath)
 		}
 		return nil
 	})
@@ -47,7 +58,15 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, 
 	var count = 0
 	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
+			switch err.(type) {
+			case *fs.PathError:
+				return nil
+			default:
+				fmt.Println(err)
+				fmt.Printf("%T\n", err)
+				return err
+			}
 		}
 		if !info.IsDir() && info.ModTime().After(date) {
 			_, err := writer.WriteString(sourcePath + "\n")
@@ -56,6 +75,7 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, 
 			}
 			writer.Flush()
 			count++
+			fmt.Println(sourcePath)
 		}
 		return nil
 	})

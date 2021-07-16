@@ -34,6 +34,9 @@ func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int
 			break
 		}
 		var sourcePath = strings.Replace(string(data), "\n", "", -1)
+		if strings.HasPrefix(sourcePath, "ERROR: ") {
+			continue
+		}
 		relativePath, err := filepath.Rel(sourcePathRoot, sourcePath)
 		if err != nil {
 			return err
