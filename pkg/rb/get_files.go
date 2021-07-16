@@ -37,12 +37,12 @@ func GetFilePaths(source, target string) (string, int, time.Time, error) {
 			if err != nil {
 				return err
 			}
-			writer.Flush()
 			count++
 			fmt.Println(sourcePath)
 		}
 		return nil
 	})
+	writer.Flush()
 	return sourcesLogPath, count, now, err
 }
 
@@ -73,11 +73,11 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, 
 			if err != nil {
 				return err
 			}
-			writer.Flush()
 			count++
 			fmt.Println(sourcePath)
 		}
 		return nil
 	})
+	writer.Flush()
 	return sourcesLogPath, count, now, err
 }

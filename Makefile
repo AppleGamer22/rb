@@ -2,7 +2,7 @@
 # json -> target
 # target usb, source smb
 
-VERSION:=$(shell cat ./VERSION)
+VERSION:=1.0.0
 SOURCES:=./pkg/rb
 # EXSOURCES:=./examples/maxp
 BIN:=./bin
