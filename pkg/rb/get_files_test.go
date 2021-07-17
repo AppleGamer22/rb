@@ -38,3 +38,24 @@ func TestInaccessibleFolder(t *testing.T) {
 	assert.Nil(t, err)
 	ClearTemp(t)
 }
+
+func TestAccessibleFolder(t *testing.T) {
+	ClearTemp(t)
+	dirName1, err := ioutil.TempDir("", "prefix-")
+	assert.Nil(t, err)
+	dirName2, err := ioutil.TempDir("", "prefix-")
+	assert.Nil(t, err)
+	tempFile1, err := ioutil.TempFile(dirName1, "prefix-")
+	assert.Nil(t, err)
+	sourcesLogPath, _, err := rb.GetFilePaths(dirName1, dirName2)
+	assert.Nil(t, err)
+	data, err := os.ReadFile(sourcesLogPath)
+	assert.Nil(t, err)
+	logs := string(data)
+	tempFile2Path := strings.ReplaceAll(tempFile1.Name(), dirName1, dirName2)
+	assert.True(t, strings.Contains(logs, tempFile1.Name()))
+	assert.True(t, strings.Contains(logs, tempFile2Path))
+	err = os.Remove(sourcesLogPath)
+	assert.Nil(t, err)
+	ClearTemp(t)
+}

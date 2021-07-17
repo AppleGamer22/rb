@@ -64,11 +64,11 @@ func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, erro
 }
 
 func WaitForDirectory(path string) {
-	fmt.Printf("Waiting for directory %s to be available...\n", path)
 	var searching = true
 	for searching {
 		_, err := os.Stat(path)
 		if err != nil {
+			fmt.Printf("Waiting for directory %s to be available...\n", path)
 			time.Sleep(2 * time.Second)
 		} else {
 			searching = false
