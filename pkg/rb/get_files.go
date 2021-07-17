@@ -10,17 +10,18 @@ import (
 	"time"
 )
 
-func GetFilePaths(source, target string) (string, int, time.Time, error) {
+func GetFilePaths(source, target string) (string, time.Time, error) {
 	var now = time.Now()
-	var sourcesLogPath = fmt.Sprintf("rb_source_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
-	file, err := os.Create(sourcesLogPath)
+	var logsPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
+	file, err := os.Create(logsPath)
 	if err != nil {
-		return "", 0, now, err
+		return "", now, err
 	}
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	var count = 0
 	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
+		WaitForDirectory(source)
 		if err != nil {
 			writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			switch err.(type) {
@@ -33,30 +34,32 @@ func GetFilePaths(source, target string) (string, int, time.Time, error) {
 			}
 		}
 		if !info.IsDir() {
-			_, err := writer.WriteString(sourcePath + "\n")
+			sourceFilePath, targetFilePath, modTime, err := Backup(sourcePath, logsPath, source, target, count, now)
 			if err != nil {
-				return err
+				writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			}
-			count++
-			fmt.Println(sourcePath)
+			writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, modTime))
+			writer.Flush()
+			fmt.Println("done")
 		}
 		return nil
 	})
 	writer.Flush()
-	return sourcesLogPath, count, now, err
+	return logsPath, now, err
 }
 
-func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, time.Time, error) {
+func GetFilePathsSinceDate(source, target string, date time.Time) (string, time.Time, error) {
 	var now = time.Now()
-	var sourcesLogPath = fmt.Sprintf("rb_source_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
-	file, err := os.Create(sourcesLogPath)
+	var logsPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
+	file, err := os.Create(logsPath)
 	if err != nil {
-		return "", 0, now, err
+		return "", now, err
 	}
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	var count = 0
 	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
+		WaitForDirectory(source)
 		if err != nil {
 			writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			switch err.(type) {
@@ -69,15 +72,17 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, int, 
 			}
 		}
 		if !info.IsDir() && info.ModTime().After(date) {
-			_, err := writer.WriteString(sourcePath + "\n")
+			sourceFilePath, targetFilePath, modTime, err := Backup(sourcePath, logsPath, source, target, count, now)
 			if err != nil {
-				return err
+				writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			}
+			writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, modTime))
+			writer.Flush()
+			fmt.Println("done")
 			count++
-			fmt.Println(sourcePath)
 		}
 		return nil
 	})
 	writer.Flush()
-	return sourcesLogPath, count, now, err
+	return logsPath, now, err
 }

@@ -6,12 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/AppleGamer22/recursive-backup/pkg/rb"
 )
 
-func PrepareData(source, target string, logsFlag *string) (string, int, error) {
+func PrepareData(source, target string, logsFlag *string) (string, error) {
 	logsPath := *logsFlag
 	fmt.Println(logsPath) //DEBUG
 	if logsPath != "" {
@@ -20,17 +19,17 @@ func PrepareData(source, target string, logsFlag *string) (string, int, error) {
 			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
 			os.Exit(1)
 		}
-		path, count, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
+		path, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
 		if err != nil {
 			log.Fatal(err)
 		}
-		return path, count, nil
+		return path, nil
 	} else {
-		path, count, _, err := rb.GetFilePaths(source, target)
+		path, _, err := rb.GetFilePaths(source, target)
 		if err != nil {
 			log.Fatal(err)
 		}
-		return path, count, nil
+		return path, nil
 	}
 }
 
@@ -53,15 +52,11 @@ func main() {
 		fmt.Println("target path is not valid")
 		os.Exit(1)
 	}
-	var startTime = time.Now()
-	newLogsFilePath, fileCount, err := PrepareData(source, target, logsFlag)
+	newLogsFilePath, err := PrepareData(source, target, logsFlag)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = rb.Backup(newLogsFilePath, source, target, fileCount, startTime)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Printf("The Backup log is saved at: %s", newLogsFilePath)
 }
 
 func ShowHelp() {

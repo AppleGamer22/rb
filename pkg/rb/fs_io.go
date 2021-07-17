@@ -1,60 +1,32 @@
 package rb
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
-func BackupLog(fileNum, numberOfFiles int, sourcePath, targetPath string) {
-	fmt.Printf("file #%d / %d (%s -> %s)\n", fileNum, numberOfFiles, sourcePath, targetPath)
+func BackupLog(fileNum int, sourcePath, targetPath string) {
+	fmt.Printf("file #%d (%s -> %s)\n", fileNum, sourcePath, targetPath)
 }
 
-func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int, startTime time.Time) error {
-	fileSourcesLog, err := os.Open(sourcesLogPath)
+func Backup(sourceFilePath, logPath, sourcePathRoot, targetPathRoot string, i int, startTime time.Time) (string, string, time.Time, error) {
+	relativePath, err := filepath.Rel(sourcePathRoot, sourceFilePath)
 	if err != nil {
-		return err
+		return "", "", time.Unix(0, 0), err
 	}
-	defer fileSourcesLog.Close()
-	var reader = bufio.NewReader(fileSourcesLog)
-	var targetsLogPath = fmt.Sprintf("rb_target_%d-%d-%d_%d.%d.%d.csv", startTime.Day(), startTime.Month(), startTime.Year(), startTime.Hour(), startTime.Minute(), startTime.Second())
-	fileTargetsLog, err := os.Create(targetsLogPath)
+	targetFilePath, err := filepath.Abs(fmt.Sprintf("%s/%s", targetPathRoot, relativePath))
 	if err != nil {
-		return err
+		return "", "", time.Unix(0, 0), err
 	}
-	defer fileTargetsLog.Close()
-	var writer = bufio.NewWriter(fileTargetsLog)
-	for i := 1; ; i++ {
-		data, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
-		var sourcePath = strings.Replace(string(data), "\n", "", -1)
-		if strings.HasPrefix(sourcePath, "ERROR: ") {
-			continue
-		}
-		relativePath, err := filepath.Rel(sourcePathRoot, sourcePath)
-		if err != nil {
-			return err
-		}
-		targetPath, err := filepath.Abs(fmt.Sprintf("%s/%s", targetPathRoot, relativePath))
-		if err != nil {
-			return err
-		}
-		BackupLog(i, fileCount, sourcePath, targetPath)
-		modTime, err := Copy(sourcePath, targetPath, targetPathRoot)
-		if err != nil {
-			return err
-		}
-		writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetPath, modTime))
-		writer.Flush()
-		fmt.Println("done")
+	BackupLog(i, sourceFilePath, targetFilePath)
+	modTime, err := Copy(sourceFilePath, targetFilePath, targetPathRoot)
+	if err != nil {
+		return "", "", time.Unix(0, 0), err
 	}
-	return nil
+	return sourceFilePath, targetFilePath, modTime, nil
 }
 
 func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, error) {
