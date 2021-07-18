@@ -12,8 +12,8 @@ import (
 
 func GetFilePaths(source, target string) (string, time.Time, error) {
 	var now = time.Now()
-	var logsPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
-	file, err := os.Create(logsPath)
+	var executionLogPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
+	file, err := os.Create(executionLogPath)
 	if err != nil {
 		return "", now, err
 	}
@@ -34,18 +34,17 @@ func GetFilePaths(source, target string) (string, time.Time, error) {
 			}
 		}
 		if !info.IsDir() {
-			sourceFilePath, targetFilePath, modTime, err := Backup(sourcePath, logsPath, source, target, count, now)
+			sourceFilePath, targetFilePath, modTime, err := BackupFile(sourcePath, executionLogPath, source, target, count, now)
 			if err != nil {
 				writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			}
 			writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, modTime))
-			writer.Flush()
 			fmt.Println("done")
 		}
 		return nil
 	})
 	writer.Flush()
-	return logsPath, now, err
+	return executionLogPath, now, err
 }
 
 func GetFilePathsSinceDate(source, target string, date time.Time) (string, time.Time, error) {
@@ -72,12 +71,11 @@ func GetFilePathsSinceDate(source, target string, date time.Time) (string, time.
 			}
 		}
 		if !info.IsDir() && info.ModTime().After(date) {
-			sourceFilePath, targetFilePath, modTime, err := Backup(sourcePath, logsPath, source, target, count, now)
+			sourceFilePath, targetFilePath, modTime, err := BackupFile(sourcePath, logsPath, source, target, count, now)
 			if err != nil {
 				writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			}
 			writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, modTime))
-			writer.Flush()
 			fmt.Println("done")
 			count++
 		}

@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -11,23 +10,25 @@ import (
 )
 
 func PrepareData(source, target string, logsFlag *string) (string, error) {
-	logsPath := *logsFlag
-	fmt.Println(logsPath) //DEBUG
-	if logsPath != "" {
-		stats, err := os.Stat(logsPath)
+	executionLogPath := *logsFlag
+	fmt.Println(executionLogPath) //DEBUG
+	if executionLogPath != "" {
+		stats, err := os.Stat(executionLogPath)
 		if err != nil {
-			fmt.Println("could not get logs file data from ", logsPath, "\n Error: ", err)
+			fmt.Println("could not get logs file data from ", executionLogPath, "\n Error: ", err)
 			os.Exit(1)
 		}
 		path, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 		return path, nil
 	} else {
 		path, _, err := rb.GetFilePaths(source, target)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 		return path, nil
 	}
@@ -36,7 +37,7 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 func main() {
 	var logsFlag = flag.String("logs", "", "--logs \"<logs JSON file path>\"")
 	flag.Parse()
-	
+
 	if len(flag.Args()) == 0 {
 		ShowHelp()
 		return
@@ -54,7 +55,8 @@ func main() {
 	}
 	newLogsFilePath, err := PrepareData(source, target, logsFlag)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 	fmt.Printf("The Backup log is saved at: %s", newLogsFilePath)
 }
