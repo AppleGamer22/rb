@@ -12,19 +12,34 @@ import (
 	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
+type RecursiveBackupper struct {
+	SourceRoot string
+	TargetRoot string
+	StartTime  time.Time
+	PreviousExecutionTime *time.Time
+}
+
+func NewRecursiveBackupper(sourceRoot string, targetRoot string, previousExecutionTime *time.Time) RecursiveBackupper {
+	return RecursiveBackupper{
+		SourceRoot: sourceRoot,
+		TargetRoot: targetRoot,
+		StartTime: time.Now(),
+		PreviousExecutionTime: previousExecutionTime,
+	}
+}
+
 // Copies all files changed after provided time from source directory to target directory.
-func BackupFilesSinceDate(source, target string, date *time.Time) (string, time.Time, error) {
-	var now = time.Now()
-	var logsPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
-	file, err := os.Create(logsPath)
+func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, err error) {
+	executionLogPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", rber.StartTime.Day(), rber.StartTime.Month(), rber.StartTime.Year(), rber.StartTime.Hour(), rber.StartTime.Minute(), rber.StartTime.Second())
+	file, err := os.Create(executionLogPath)
 	if err != nil {
-		return "", now, err
+		return "", err
 	}
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	var count = 0
-	err = filepath.Walk(source, func(sourcePath string, info os.FileInfo, err error) error {
-		utils.WaitForDirectory(source)
+	err = filepath.Walk(rber.SourceRoot, func(sourcePath string, info os.FileInfo, err error) error {
+		utils.WaitForDirectory(rber.SourceRoot)
 		if err != nil {
 			writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 			switch err.(type) {
@@ -37,19 +52,19 @@ func BackupFilesSinceDate(source, target string, date *time.Time) (string, time.
 			}
 		}
 		if info.Mode().IsRegular() {
-			if (date != nil && info.ModTime().After(*date)) || date == nil {
-				sourceFilePath, targetFilePath, copyTime, err := BackupFile(sourcePath, source, target, count, now)
+			if (rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)) || rber.PreviousExecutionTime == nil {
+				targetFilePath, copyTime, err := rber.backupFile(sourcePath, count)
 				if err != nil {
 					writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 				}
-				writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, copyTime))
+				writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetFilePath, copyTime))
 				fmt.Println("done")
 				count++
 			}
 		} else if info.Mode().IsDir() {
 			_, err := os.Stat(sourcePath)
 			if err != nil {
-				targetPath, err := utils.Source2TargetPath(sourcePath, source, target)
+				targetPath, err := utils.Source2TargetPath(sourcePath, rber.SourceRoot, rber.TargetRoot)
 				if err != nil {
 					return err
 				}
@@ -62,5 +77,5 @@ func BackupFilesSinceDate(source, target string, date *time.Time) (string, time.
 		return nil
 	})
 	writer.Flush()
-	return logsPath, now, err
+	return executionLogPath, err
 }

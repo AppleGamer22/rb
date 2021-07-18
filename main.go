@@ -19,14 +19,16 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 			os.Exit(1)
 		}
 		modificationTime := stats.ModTime()
-		path, _, err := rb.BackupFilesSinceDate(source, target, &modificationTime)
+		rber := rb.NewRecursiveBackupper(source, target, &modificationTime)
+		path, err := rber.BackupFilesSinceDate()
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
 		return path, nil
 	} else {
-		path, _, err := rb.BackupFilesSinceDate(source, target, nil)
+		rber := rb.NewRecursiveBackupper(source, target, nil)
+		path, err := rber.BackupFilesSinceDate()
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
