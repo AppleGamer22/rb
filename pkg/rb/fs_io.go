@@ -14,7 +14,8 @@ func printProgressMessage(fileNum int, sourcePath, targetPath string) {
 	fmt.Printf("file #%d (%s -> %s)\n", fileNum, sourcePath, targetPath)
 }
 
-func BackupFile(sourceFilePath, logPath, sourcePathRoot, targetPathRoot string, i int, startTime time.Time) (string, string, time.Time, error) {
+// Backs up file file to its correct location on target based on its target sub-direcory
+func BackupFile(sourceFilePath, sourcePathRoot, targetPathRoot string, i int, startTime time.Time) (string, string, time.Time, error) {
 	targetFilePath, err := utils.Source2TargetPath(sourceFilePath, sourcePathRoot, targetPathRoot)
 	if err != nil {
 		return "", "", time.Unix(0, 0), err
@@ -27,7 +28,8 @@ func BackupFile(sourceFilePath, logPath, sourcePathRoot, targetPathRoot string, 
 	return sourceFilePath, targetFilePath, copyTime, nil
 }
 
-func CopyFile(sourcePath, targetPath string, targetPathRoot string) (time.Time, error) {
+// Copies file to the provided destination
+func CopyFile(sourcePath, targetPath, targetPathRoot string) (time.Time, error) {
 	fileStatSource, err := os.Stat(sourcePath)
 	if err != nil {
 		utils.WaitForDirectory(targetPathRoot)

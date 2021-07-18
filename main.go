@@ -9,6 +9,7 @@ import (
 	"github.com/AppleGamer22/recursive-backup/pkg/rb"
 )
 
+// Detects previous execution log if it is provided and exists and starts the back-up process.
 func PrepareData(source, target string, logsFlag *string) (string, error) {
 	previousExecutionLogPath := *logsFlag
 	if previousExecutionLogPath != "" {
@@ -18,14 +19,14 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 			os.Exit(1)
 		}
 		modificationTime := stats.ModTime()
-		path, _, err := rb.GetFilePathsSinceDate(source, target, &modificationTime)
+		path, _, err := rb.BackupFilesSinceDate(source, target, &modificationTime)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
 		return path, nil
 	} else {
-		path, _, err := rb.GetFilePathsSinceDate(source, target, nil)
+		path, _, err := rb.BackupFilesSinceDate(source, target, nil)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
@@ -34,6 +35,7 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 	}
 }
 
+// Accepts arguments/flags and starts the program.
 func main() {
 	var logsFlag = flag.String("logs", "", "--logs \"<logs JSON file path>\"")
 	flag.Parse()
@@ -61,6 +63,7 @@ func main() {
 	fmt.Printf("The Backup log is saved at: %s", newLogsFilePath)
 }
 
+// prints usage guide to console.
 func showHelp() {
 	fmt.Println("Usage:")
 	fmt.Println("For full backup:")

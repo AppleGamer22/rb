@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// clears temporary directory of test-generated data
 func ClearTemp(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join(os.TempDir(), "prefix-*"))
 	assert.Nil(t, err)
@@ -29,7 +30,7 @@ func TestInaccessibleFolder(t *testing.T) {
 	dirName2, err := ioutil.TempDir("", "prefix-")
 	assert.Nil(t, err)
 	assert.Nil(t, err)
-	sourcesLogPath, _, err := rb.GetFilePathsSinceDate(dirName1, dirName2, nil)
+	sourcesLogPath, _, err := rb.BackupFilesSinceDate(dirName1, dirName2, nil)
 	assert.Nil(t, err)
 	data, err := os.ReadFile(sourcesLogPath)
 	assert.Nil(t, err)
@@ -47,7 +48,7 @@ func TestAccessibleFolder(t *testing.T) {
 	assert.Nil(t, err)
 	tempFile1, err := ioutil.TempFile(dirName1, "prefix-")
 	assert.Nil(t, err)
-	sourcesLogPath, _, err := rb.GetFilePathsSinceDate(dirName1, dirName2, nil)
+	sourcesLogPath, _, err := rb.BackupFilesSinceDate(dirName1, dirName2, nil)
 	assert.Nil(t, err)
 	data, err := os.ReadFile(sourcesLogPath)
 	assert.Nil(t, err)

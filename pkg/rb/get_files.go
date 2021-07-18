@@ -12,7 +12,8 @@ import (
 	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
-func GetFilePathsSinceDate(source, target string, date *time.Time) (string, time.Time, error) {
+// Copies all files changed after provided time from source directory to target directory.
+func BackupFilesSinceDate(source, target string, date *time.Time) (string, time.Time, error) {
 	var now = time.Now()
 	var logsPath = fmt.Sprintf("rb_%d-%d-%d_%d.%d.%d.csv", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
 	file, err := os.Create(logsPath)
@@ -37,11 +38,11 @@ func GetFilePathsSinceDate(source, target string, date *time.Time) (string, time
 		}
 		if info.Mode().IsRegular() {
 			if (date != nil && info.ModTime().After(*date)) || date == nil {
-				sourceFilePath, targetFilePath, modTime, err := BackupFile(sourcePath, logsPath, source, target, count, now)
+				sourceFilePath, targetFilePath, copyTime, err := BackupFile(sourcePath, source, target, count, now)
 				if err != nil {
 					writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 				}
-				writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, modTime))
+				writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourceFilePath, targetFilePath, copyTime))
 				fmt.Println("done")
 				count++
 			}
