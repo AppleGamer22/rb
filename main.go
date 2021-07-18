@@ -7,19 +7,20 @@ import (
 	"path/filepath"
 
 	"github.com/AppleGamer22/recursive-backup/pkg/rb"
+	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
 // Detects previous execution log if it is provided and exists and starts the back-up process.
 func PrepareData(source, target string, logsFlag *string) (string, error) {
 	previousExecutionLogPath := *logsFlag
 	if previousExecutionLogPath != "" {
-		stats, err := os.Stat(previousExecutionLogPath)
+		_, err := os.Stat(previousExecutionLogPath)
 		if err != nil {
 			fmt.Println("could not get logs file data from ", previousExecutionLogPath, "\n Error: ", err)
 			os.Exit(1)
 		}
-		modificationTime := stats.ModTime()
-		rber := rb.NewRecursiveBackupper(source, target, &modificationTime)
+		previousExecutionTime, _ := utils.GetLastBackupExecutionTime(previousExecutionLogPath)
+		rber := rb.NewRecursiveBackupper(source, target, &previousExecutionTime)
 		path, err := rber.BackupFilesSinceDate()
 		if err != nil {
 			fmt.Println(err.Error())
