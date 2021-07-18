@@ -10,22 +10,22 @@ import (
 )
 
 func PrepareData(source, target string, logsFlag *string) (string, error) {
-	executionLogPath := *logsFlag
-	fmt.Println(executionLogPath) //DEBUG
-	if executionLogPath != "" {
-		stats, err := os.Stat(executionLogPath)
+	previousExecutionLogPath := *logsFlag
+	if previousExecutionLogPath != "" {
+		stats, err := os.Stat(previousExecutionLogPath)
 		if err != nil {
-			fmt.Println("could not get logs file data from ", executionLogPath, "\n Error: ", err)
+			fmt.Println("could not get logs file data from ", previousExecutionLogPath, "\n Error: ", err)
 			os.Exit(1)
 		}
-		path, _, err := rb.GetFilePathsSinceDate(source, target, stats.ModTime())
+		modificationTime := stats.ModTime()
+		path, _, err := rb.GetFilePathsSinceDate(source, target, &modificationTime)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
 		return path, nil
 	} else {
-		path, _, err := rb.GetFilePaths(source, target)
+		path, _, err := rb.GetFilePathsSinceDate(source, target, nil)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
@@ -39,7 +39,7 @@ func main() {
 	flag.Parse()
 
 	if len(flag.Args()) == 0 {
-		ShowHelp()
+		showHelp()
 		return
 	}
 	source, err := filepath.Abs(flag.Arg(0))
@@ -61,7 +61,7 @@ func main() {
 	fmt.Printf("The Backup log is saved at: %s", newLogsFilePath)
 }
 
-func ShowHelp() {
+func showHelp() {
 	fmt.Println("Usage:")
 	fmt.Println("For full backup:")
 	fmt.Println("\trb \"<source path>\" \"<target path>\"")
