@@ -19,6 +19,22 @@ func Source2TargetPath(sourceFilePath, sourcePathRoot, targetPathRoot string) (s
 	return targetFilePath, nil
 }
 
+func DoesTargetFileExist(sourceFilePath, sourcePathRoot, targetPathRoot string) (bool, error) {
+	targetFilePath, err := Source2TargetPath(sourceFilePath, sourcePathRoot, targetPathRoot)
+	if err != nil {
+		return false, err
+	}
+	if _, err := os.Stat(targetFilePath); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	} else {
+		return true, nil
+	}
+}
+
 func WaitForDirectory(path string) {
 	var searching = true
 	for searching {

@@ -17,14 +17,19 @@ type RecursiveBackupper struct {
 	TargetRoot string
 	StartTime  time.Time
 	PreviousExecutionTime *time.Time
+	RecoveryMode bool
 }
 
-func NewRecursiveBackupper(sourceRoot string, targetRoot string, previousExecutionTime *time.Time) RecursiveBackupper {
+func NewRecursiveBackupper(sourceRoot string, targetRoot string, previousExecutionTime *time.Time, recover bool) RecursiveBackupper {
+	if previousExecutionTime == nil {
+		recover = false
+	}
 	return RecursiveBackupper{
 		SourceRoot: sourceRoot,
 		TargetRoot: targetRoot,
 		StartTime: time.Now(),
 		PreviousExecutionTime: previousExecutionTime,
+		RecoveryMode: recover,
 	}
 }
 
@@ -52,13 +57,19 @@ func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, 
 			}
 		}
 		if info.Mode().IsRegular() {
-			if (rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)) || rber.PreviousExecutionTime == nil {
+			foundOnTarget, err := utils.DoesTargetFileExist(sourcePath, rber.SourceRoot, rber.TargetRoot)
+			if err != nil {
+				return err
+			}
+			isInitialBackup := rber.PreviousExecutionTime == nil
+			isRecent := rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)
+			isRecoverable := rber.RecoveryMode && !foundOnTarget
+			if isInitialBackup || isRecent || isRecoverable {
 				targetFilePath, copyTime, err := rber.backupFile(sourcePath, count)
 				if err != nil {
 					writer.WriteString(fmt.Sprintf("ERROR: %s, %s\n", sourcePath, strings.ReplaceAll(err.Error(), "\n", "")))
 				}
 				writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetFilePath, copyTime))
-				fmt.Println("done")
 				count++
 			}
 		} else if info.Mode().IsDir() {

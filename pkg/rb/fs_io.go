@@ -25,6 +25,7 @@ func (rber RecursiveBackupper) backupFile(sourceFilePath string, fileNumber int)
 	if err != nil {
 		return "", time.Unix(0, 0), err
 	}
+	fmt.Println("done")
 	return targetFilePath, copyTime, nil
 }
 

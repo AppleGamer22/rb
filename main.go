@@ -11,7 +11,12 @@ import (
 )
 
 // Detects previous execution log if it is provided and exists and starts the back-up process.
-func PrepareData(source, target string, logsFlag *string) (string, error) {
+func PrepareData(source, target string, logsFlag *string, recoveryFlag *bool) (string, error) {
+	fmt.Printf("Source directory: %s\n", source)
+	fmt.Printf("Target directory: %s\n", target)
+	if (*recoveryFlag) {
+		fmt.Printf("Copying files not found on %s\n", target)
+	}
 	previousExecutionLogPath := *logsFlag
 	if previousExecutionLogPath != "" {
 		_, err := os.Stat(previousExecutionLogPath)
@@ -20,7 +25,7 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 			os.Exit(1)
 		}
 		previousExecutionTime, _ := utils.GetLastBackupExecutionTime(previousExecutionLogPath)
-		rber := rb.NewRecursiveBackupper(source, target, &previousExecutionTime)
+		rber := rb.NewRecursiveBackupper(source, target, &previousExecutionTime, *recoveryFlag)
 		path, err := rber.BackupFilesSinceDate()
 		if err != nil {
 			fmt.Println(err.Error())
@@ -28,7 +33,7 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 		}
 		return path, nil
 	} else {
-		rber := rb.NewRecursiveBackupper(source, target, nil)
+		rber := rb.NewRecursiveBackupper(source, target, nil, *recoveryFlag)
 		path, err := rber.BackupFilesSinceDate()
 		if err != nil {
 			fmt.Println(err.Error())
@@ -41,8 +46,8 @@ func PrepareData(source, target string, logsFlag *string) (string, error) {
 // Accepts arguments/flags and starts the program.
 func main() {
 	var logsFlag = flag.String("logs", "", "--logs \"<logs JSON file path>\"")
+	var recoveryFlag = flag.Bool("recovery", false, "--recovery")
 	flag.Parse()
-
 	if len(flag.Args()) == 0 {
 		showHelp()
 		return
@@ -58,7 +63,7 @@ func main() {
 		fmt.Println("target path is not valid")
 		os.Exit(1)
 	}
-	newLogsFilePath, err := PrepareData(source, target, logsFlag)
+	newLogsFilePath, err := PrepareData(source, target, logsFlag, recoveryFlag)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
