@@ -116,7 +116,7 @@ func TestRecoveryFileNotInTarget(t *testing.T) {
 	data, err := os.ReadFile(sourcesLogPath)
 	assert.Nil(t, err)
 	assert.True(t, strings.Contains(string(data), targetFilePath1))
-	// err = os.Remove(sourcesLogPath)
-	// assert.Nil(t, err)
-	// ClearTemp(t)
+	err = os.Remove(sourcesLogPath)
+	assert.Nil(t, err)
+	ClearTemp(t)
 }

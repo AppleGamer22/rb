@@ -21,9 +21,6 @@ type RecursiveBackupper struct {
 }
 
 func NewRecursiveBackupper(sourceRoot string, targetRoot string, previousExecutionTime *time.Time, recover bool) RecursiveBackupper {
-	if previousExecutionTime == nil {
-		recover = false
-	}
 	return RecursiveBackupper{
 		SourceRoot: sourceRoot,
 		TargetRoot: targetRoot,
@@ -64,6 +61,9 @@ func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, 
 			isInitialBackup := rber.PreviousExecutionTime == nil
 			isRecent := rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)
 			isRecoverable := rber.RecoveryMode && !foundOnTarget
+			if rber.RecoveryMode && foundOnTarget {
+				fmt.Printf("Skipping %s\n", sourcePath)
+			}
 			if isInitialBackup || isRecent || isRecoverable {
 				targetFilePath, copyTime, err := rber.backupFile(sourcePath, count)
 				if err != nil {
