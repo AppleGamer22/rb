@@ -73,16 +73,13 @@ func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, 
 				count++
 			}
 		} else if info.Mode().IsDir() {
-			_, err := os.Stat(sourcePath)
+			targetPath, err := utils.Source2TargetPath(sourcePath, rber.SourceRoot, rber.TargetRoot)
 			if err != nil {
-				targetPath, err := utils.Source2TargetPath(sourcePath, rber.SourceRoot, rber.TargetRoot)
-				if err != nil {
-					return err
-				}
-				err = os.MkdirAll(targetPath, 0755)
-				if err != nil {
-					return err
-				}
+				return err
+			}
+			err = os.MkdirAll(targetPath, 0755)
+			if err != nil {
+				return err
 			}
 		}
 		return nil
