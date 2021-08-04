@@ -53,17 +53,18 @@ func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, 
 				return err
 			}
 		}
+		foundOnTarget, err := utils.DoesTargetFileExist(sourcePath, rber.SourceRoot, rber.TargetRoot)
+		if err != nil {
+			return err
+		}
+		if rber.RecoveryMode && foundOnTarget {
+			fmt.Printf("Skipping %s\n", sourcePath)
+			return nil
+		}
 		if info.Mode().IsRegular() {
-			foundOnTarget, err := utils.DoesTargetFileExist(sourcePath, rber.SourceRoot, rber.TargetRoot)
-			if err != nil {
-				return err
-			}
 			isInitialBackup := rber.PreviousExecutionTime == nil
 			isRecent := rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)
 			isRecoverable := rber.RecoveryMode && !foundOnTarget
-			if rber.RecoveryMode && foundOnTarget {
-				fmt.Printf("Skipping %s\n", sourcePath)
-			}
 			if isInitialBackup || isRecent || isRecoverable {
 				targetFilePath, copyTime, err := rber.backupFile(sourcePath, count)
 				if err != nil {
