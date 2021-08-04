@@ -24,7 +24,11 @@ func PrepareData(source, target string, logsFlag *string, recoveryFlag *bool) (s
 			fmt.Println("could not get logs file data from ", previousExecutionLogPath, "\n Error: ", err)
 			os.Exit(1)
 		}
-		previousExecutionTime, _ := utils.GetLastBackupExecutionTime(previousExecutionLogPath)
+		previousExecutionTime, err := utils.GetLastBackupExecutionTime(previousExecutionLogPath)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 		rber := rb.NewRecursiveBackupper(source, target, &previousExecutionTime, *recoveryFlag)
 		path, err := rber.BackupFilesSinceDate()
 		if err != nil {

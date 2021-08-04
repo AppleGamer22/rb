@@ -62,7 +62,7 @@ func (rber RecursiveBackupper) BackupFilesSinceDate() (executionLogPath string, 
 			return nil
 		}
 		if info.Mode().IsRegular() {
-			isInitialBackup := rber.PreviousExecutionTime == nil
+			isInitialBackup := rber.PreviousExecutionTime == nil && !rber.RecoveryMode
 			isRecent := rber.PreviousExecutionTime != nil && info.ModTime().After(*rber.PreviousExecutionTime)
 			isRecoverable := rber.RecoveryMode && !foundOnTarget
 			if isInitialBackup || isRecent || isRecoverable {
