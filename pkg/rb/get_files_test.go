@@ -2,7 +2,6 @@ package rb_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,11 +25,11 @@ func ClearTemp(t *testing.T) {
 
 func TestInaccessibleFolder(t *testing.T) {
 	ClearTemp(t)
-	dirName1, err := ioutil.TempDir("", "prefix-")
+	dirName1, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
 	err = os.Chmod(dirName1, 0220)
 	assert.Nil(t, err)
-	dirName2, err := ioutil.TempDir("", "prefix-")
+	dirName2, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
 	assert.Nil(t, err)
 	rber := rb.NewRecursiveBackupper(dirName1, dirName2, nil, false)
@@ -46,11 +45,11 @@ func TestInaccessibleFolder(t *testing.T) {
 
 func TestAccessibleFolder(t *testing.T) {
 	ClearTemp(t)
-	dirName1, err := ioutil.TempDir("", "prefix-")
+	dirName1, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
-	dirName2, err := ioutil.TempDir("", "prefix-")
+	dirName2, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
-	tempFile1, err := ioutil.TempFile(dirName1, "prefix-")
+	tempFile1, err := os.CreateTemp(dirName1, "prefix-")
 	assert.Nil(t, err)
 	rber := rb.NewRecursiveBackupper(dirName1, dirName2, nil, false)
 	sourcesLogPath, err := rber.BackupFilesSinceDate()
@@ -68,11 +67,11 @@ func TestAccessibleFolder(t *testing.T) {
 
 func TestRecoveryFileInTarget(t *testing.T) {
 	ClearTemp(t)
-	dirName1, err := ioutil.TempDir("", "prefix-")
+	dirName1, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
-	dirName2, err := ioutil.TempDir("", "prefix-")
+	dirName2, err := os.MkdirTemp("", "prefix-")
 	assert.Nil(t, err)
-	tempFile1, err := ioutil.TempFile(dirName1, "prefix-")
+	tempFile1, err := os.CreateTemp(dirName1, "prefix-")
 	assert.Nil(t, err)
 	now := time.Now()
 	rber := rb.NewRecursiveBackupper(dirName1, dirName2, &now, true)
@@ -97,11 +96,11 @@ func TestRecoveryFileInTarget(t *testing.T) {
 
 func TestRecoveryFileNotInTarget(t *testing.T) {
 	ClearTemp(t)
-	sourceDirName, err := ioutil.TempDir("", "src-dir-")
+	sourceDirName, err := os.MkdirTemp("", "src-dir-")
 	assert.Nil(t, err)
-	targetDirName, err := ioutil.TempDir("", "target-dir-")
+	targetDirName, err := os.MkdirTemp("", "target-dir-")
 	assert.Nil(t, err)
-	tempFile1, err := ioutil.TempFile(sourceDirName, "test-file-")
+	tempFile1, err := os.CreateTemp(sourceDirName, "test-file-")
 	assert.Nil(t, err)
 	now := time.Now()
 	rber := rb.NewRecursiveBackupper(sourceDirName, targetDirName, &now, true)
