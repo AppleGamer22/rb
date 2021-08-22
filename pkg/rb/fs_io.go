@@ -1,67 +1,40 @@
 package rb
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
-func BackupLog(fileNum, numberOfFiles int, sourcePath, targetPath string) {
-	fmt.Printf("file #%d / %d (%s -> %s)\n", fileNum, numberOfFiles, sourcePath, targetPath)
+func printProgressMessage(fileNum int, sourcePath, targetPath string) {
+	fmt.Printf("file #%d (%s -> %s)\n", fileNum, sourcePath, targetPath)
 }
 
-func Backup(sourcesLogPath, sourcePathRoot, targetPathRoot string, fileCount int, startTime time.Time) error {
-	fileSourcesLog, err := os.Open(sourcesLogPath)
+// Backs up file file to its correct location on target based on its target sub-direcory
+func (rber RecursiveBackupper) backupFile(sourceFilePath string, fileNumber int) (targetFilePath string, copyTime time.Time, err error) {
+	targetFilePath, err = utils.Source2TargetPath(sourceFilePath, rber.SourceRoot, rber.TargetRoot)
 	if err != nil {
-		return err
+		return "", time.Unix(0, 0), err
 	}
-	defer fileSourcesLog.Close()
-	var reader = bufio.NewReader(fileSourcesLog)
-	var targetsLogPath = fmt.Sprintf("rb_target_%d-%d-%d_%d.%d.%d.csv", startTime.Day(), startTime.Month(), startTime.Year(), startTime.Hour(), startTime.Minute(), startTime.Second())
-	fileTargetsLog, err := os.Create(targetsLogPath)
+	printProgressMessage(fileNumber, sourceFilePath, targetFilePath)
+	copyTime, err = rber.copyFile(sourceFilePath, targetFilePath)
 	if err != nil {
-		return err
+		return "", time.Unix(0, 0), err
 	}
-	defer fileTargetsLog.Close()
-	var writer = bufio.NewWriter(fileTargetsLog)
-	for i := 1; ; i++ {
-		data, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
-		var sourcePath = strings.Replace(string(data), "\n", "", -1)
-		if strings.HasPrefix(sourcePath, "ERROR: ") {
-			continue
-		}
-		relativePath, err := filepath.Rel(sourcePathRoot, sourcePath)
-		if err != nil {
-			return err
-		}
-		targetPath, err := filepath.Abs(fmt.Sprintf("%s/%s", targetPathRoot, relativePath))
-		if err != nil {
-			return err
-		}
-		BackupLog(i, fileCount, sourcePath, targetPath)
-		modTime, err := Copy(sourcePath, targetPath, targetPathRoot)
-		if err != nil {
-			return err
-		}
-		writer.WriteString(fmt.Sprintf("%s,%s,%s\n", sourcePath, targetPath, modTime))
-		writer.Flush()
-		fmt.Println("done")
-	}
-	return nil
+	fmt.Println("done")
+	return targetFilePath, copyTime, nil
 }
 
-func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, error) {
+// Copies file to the provided destination
+func (rber RecursiveBackupper) copyFile(sourcePath, targetPath string) (time.Time, error) {
 	fileStatSource, err := os.Stat(sourcePath)
 	if err != nil {
-		WaitForDirectory(targetPathRoot)
-		return Copy(sourcePath, targetPath, targetPathRoot)
+		utils.WaitForDirectory(targetPath)
+		return rber.copyFile(sourcePath, targetPath)
 	}
 	if !fileStatSource.Mode().IsRegular() {
 		return time.Unix(0, 0), fmt.Errorf("%s is not a regular file", sourcePath)
@@ -70,10 +43,11 @@ func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, erro
 	if err != nil {
 		err := os.MkdirAll(filepath.Dir(targetPath), 0755)
 		if err != nil {
-			WaitForDirectory(targetPathRoot)
-			return Copy(sourcePath, targetPath, targetPathRoot)
+			utils.WaitForDirectory(rber.TargetRoot)
+			return rber.copyFile(sourcePath, targetPath)
 		}
 	}
+
 	src, err := os.Open(sourcePath)
 	if err != nil {
 		return time.Unix(0, 0), err
@@ -81,25 +55,13 @@ func Copy(sourcePath, targetPath string, targetPathRoot string) (time.Time, erro
 	defer src.Close()
 
 	dest, err := os.Create(targetPath)
-
 	if err != nil {
-		WaitForDirectory(targetPathRoot)
-		return Copy(sourcePath, targetPath, targetPathRoot)
+		utils.WaitForDirectory(rber.TargetRoot)
+		return rber.copyFile(sourcePath, targetPath)
 	}
 	defer dest.Close()
 	_, err = io.Copy(dest, src)
-	return fileStatSource.ModTime(), err
+	return time.Now(), err
 }
 
-func WaitForDirectory(path string) {
-	fmt.Printf("Waiting for directory %s to be available...\n", path)
-	var searching = true
-	for searching {
-		_, err := os.Stat(path)
-		if err != nil {
-			time.Sleep(2 * time.Second)
-		} else {
-			searching = false
-		}
-	}
-}
+

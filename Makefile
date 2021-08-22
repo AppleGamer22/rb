@@ -2,14 +2,13 @@
 # json -> target
 # target usb, source smb
 
-VERSION:=$(shell cat ./VERSION)
+VERSION:=1.0.0
 SOURCES:=./pkg/rb
-# EXSOURCES:=./examples/maxp
 BIN:=./bin
-BASE:=rb
+BASE:=rb_$(VERSION)
 LINUX=$(BASE)_linux_amd64
 DARWIN=$(BASE)_darwin_amd64
-WINDOWS=$(BASE)_win_amd64.exe
+WINDOWS=$(BASE)_windows_amd64.exe
 
 
 
@@ -43,7 +42,7 @@ $(DARWIN):
 
 $(WINDOWS):
 	env GOOS=windows GOARCH=amd64 go build  -v -o $(BIN)/$(WINDOWS) $(EXSOURCES)
-	
+
 build-example: linux darwin windows
 	@echo
 	@echo "Example application build $(VERSION) complete"
