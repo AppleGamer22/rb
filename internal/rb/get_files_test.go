@@ -1,6 +1,7 @@
 package rb_test
 
 import (
+	"github.com/AppleGamer22/recursive-backup/internal/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -8,8 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AppleGamer22/recursive-backup/pkg/rb"
-	"github.com/AppleGamer22/recursive-backup/pkg/utils"
+	"github.com/AppleGamer22/recursive-backup/internal/rb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,7 +75,7 @@ func TestRecoveryFileInTarget(t *testing.T) {
 	assert.Nil(t, err)
 	now := time.Now()
 	rber := rb.NewRecursiveBackupper(dirName1, dirName2, &now, true)
-	targetFilePath1, err := utils.Source2TargetPath(tempFile1.Name() ,dirName1, dirName2)
+	targetFilePath1, err := utils.Source2TargetPath(tempFile1.Name(), dirName1, dirName2)
 	assert.Nil(t, err)
 	dest, err := os.Create(targetFilePath1)
 	assert.Nil(t, err)
@@ -104,7 +104,7 @@ func TestRecoveryFileNotInTarget(t *testing.T) {
 	assert.Nil(t, err)
 	now := time.Now()
 	rber := rb.NewRecursiveBackupper(sourceDirName, targetDirName, &now, true)
-	targetFilePath1, err := utils.Source2TargetPath(tempFile1.Name() ,sourceDirName, targetDirName)
+	targetFilePath1, err := utils.Source2TargetPath(tempFile1.Name(), sourceDirName, targetDirName)
 	assert.Nil(t, err)
 	found, _ := utils.DoesTargetFileExist(tempFile1.Name(), sourceDirName, targetDirName)
 	assert.False(t, found)
