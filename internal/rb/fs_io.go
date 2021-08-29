@@ -2,12 +2,11 @@ package rb
 
 import (
 	"fmt"
+	"github.com/AppleGamer22/recursive-backup/internal/utils"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
 func printProgressMessage(fileNum int, sourcePath, targetPath string) {

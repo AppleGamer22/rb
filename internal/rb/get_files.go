@@ -3,13 +3,12 @@ package rb
 import (
 	"bufio"
 	"fmt"
+	"github.com/AppleGamer22/recursive-backup/internal/utils"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
 type RecursiveBackupper struct {

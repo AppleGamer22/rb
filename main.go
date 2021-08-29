@@ -3,11 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/AppleGamer22/recursive-backup/internal/rb"
+	"github.com/AppleGamer22/recursive-backup/internal/utils"
 	"os"
 	"path/filepath"
-
-	"github.com/AppleGamer22/recursive-backup/pkg/rb"
-	"github.com/AppleGamer22/recursive-backup/pkg/utils"
 )
 
 // Detects previous execution log if it is provided and exists and starts the back-up process.
