@@ -1,22 +1,31 @@
 package workers
 
-import "github.com/AppleGamer22/recursive-backup/internal/tasks"
+import (
+	"github.com/AppleGamer22/recursive-backup/internal/tasks"
+)
 
 type FileBackupWorker interface {
-	Do() error
+	Handle()
 }
 
 type fileBackupWorker struct {
-	pipeline chan tasks.BackupFile
+	Pipeline       chan tasks.BackupFile
+	SourceRootPath string
+	TargetRootPath string
 }
 
-func NewFileBackupWorker(p chan tasks.BackupFile) FileBackupWorker {
-	return fileBackupWorker{
-		pipeline: p,
+func NewFileBackupWorker(srcRootPath, targetRootPath string, p chan tasks.BackupFile) FileBackupWorker {
+	worker := &fileBackupWorker{
+		Pipeline:       p,
+		SourceRootPath: srcRootPath,
+		TargetRootPath: targetRootPath,
 	}
+	go worker.Handle()
+	return worker
 }
 
-func (f fileBackupWorker) Do() error{
-
-	return nil
+func (f *fileBackupWorker) Handle() {
+	for task := range f.Pipeline {
+		task.Do()
+	}
 }
