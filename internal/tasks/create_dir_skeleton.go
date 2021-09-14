@@ -27,7 +27,7 @@ func (b *BackupDirSkeleton) Do() []error {
 
 	for _, srcDirPath := range dirs {
 		targetDirPath := b.TargetRootPath + strings.TrimPrefix(srcDirPath, b.SrcRootPath)
-		err := os.MkdirAll(targetDirPath, 0755)
+		err = os.MkdirAll(targetDirPath, 0755)
 		if err != nil {
 			errs = append(errs, err)
 		}
