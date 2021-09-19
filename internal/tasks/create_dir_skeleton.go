@@ -10,13 +10,25 @@ import (
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 )
 
-type BackupDirSkeleton struct {
+type BackupDirSkeleton interface {
+	Do() []error
+}
+
+func NewBackupDirSkeleton(srcRootPath string, srcDirReader io.Reader, targetRootPath string) BackupDirSkeleton {
+	return &backupDirSkeleton{
+		SrcRootPath:          srcRootPath,
+		SrcDirectoriesReader: srcDirReader,
+		TargetRootPath:       targetRootPath,
+	}
+}
+
+type backupDirSkeleton struct {
 	SrcRootPath          string
 	SrcDirectoriesReader io.Reader
 	TargetRootPath       string
 }
 
-func (b *BackupDirSkeleton) Do() []error {
+func (b *backupDirSkeleton) Do() []error {
 	var errs []error
 
 	dirs, err := b.extractLongPaths()
@@ -27,7 +39,7 @@ func (b *BackupDirSkeleton) Do() []error {
 
 	for _, srcDirPath := range dirs {
 		targetDirPath := b.TargetRootPath + strings.TrimPrefix(srcDirPath, b.SrcRootPath)
-		err := os.MkdirAll(targetDirPath, 0755)
+		err = os.MkdirAll(targetDirPath, 0755)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -36,7 +48,7 @@ func (b *BackupDirSkeleton) Do() []error {
 	return errs
 }
 
-func (b *BackupDirSkeleton) extractLongPaths() ([]string, error) {
+func (b *backupDirSkeleton) extractLongPaths() ([]string, error) {
 	dirs, err := b.getSortedSrcDirPaths()
 	if err != nil {
 		return nil, err
@@ -65,7 +77,7 @@ func (b *BackupDirSkeleton) extractLongPaths() ([]string, error) {
 	return shortList, err
 }
 
-func (b *BackupDirSkeleton) getSortedSrcDirPaths() ([]string, error) {
+func (b *backupDirSkeleton) getSortedSrcDirPaths() ([]string, error) {
 	var dirs []string
 
 	scan := bufio.NewScanner(b.SrcDirectoriesReader)

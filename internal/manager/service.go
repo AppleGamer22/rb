@@ -13,12 +13,12 @@ type Manager interface {
 }
 
 type manager struct {
-	sourceRootDir           string
-	targetRootDir           string
-	tasksPipeline           chan tasks.BackupFile
-	responseChannel         chan tasks.BackupFileResponse
-	directorySkeletonWorker workers.DirectorySkeletonWorker
-	fileBackupWorkers       []workers.FileBackupWorker
+	sourceRootDir         string
+	targetRootDir         string
+	tasksPipeline         chan tasks.BackupFile
+	responseChannel       chan tasks.BackupFileResponse
+	directorySkeletonTask tasks.BackupDirSkeleton
+	fileBackupWorkers     []workers.FileBackupWorker
 }
 
 func NewManager(srcRootDir string, targetRootDir string, pipelineLength int) Manager {
@@ -29,14 +29,15 @@ func NewManager(srcRootDir string, targetRootDir string, pipelineLength int) Man
 	for i := range fileWorkers {
 		fileWorkers[i] = workers.NewFileBackupWorker(srcRootDir, targetRootDir, pipelineChannel)
 	}
+	var sourceDirReader io.Reader
 
 	return manager{
-		sourceRootDir:           srcRootDir,
-		targetRootDir:           targetRootDir,
-		tasksPipeline:           pipelineChannel,
-		responseChannel:         filesCopyResponseChannel,
-		directorySkeletonWorker: workers.NewDirectorySkeletonWorker(srcRootDir, targetRootDir),
-		fileBackupWorkers:       fileWorkers,
+		sourceRootDir:         srcRootDir,
+		targetRootDir:         targetRootDir,
+		tasksPipeline:         pipelineChannel,
+		responseChannel:       filesCopyResponseChannel,
+		directorySkeletonTask: tasks.NewBackupDirSkeleton(srcRootDir, sourceDirReader, targetRootDir),
+		fileBackupWorkers:     fileWorkers,
 	}
 }
 
