@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,12 +18,19 @@ type SourceLister interface {
 
 type sourceLister struct {
 	SrcRootDir   string
-	DirsWriter   bufio.Writer
-	FilesWriter  bufio.Writer
-	ErrorsWriter bufio.Writer
+	DirsWriter   *bufio.Writer
+	FilesWriter  *bufio.Writer
+	ErrorsWriter *bufio.Writer
 }
 
-func (s *sourceLister) Validate() error {
+type NewSrcListerInput struct {
+	SrcRootDir   string
+	DirsWriter   io.Writer
+	FilesWriter  io.Writer
+	ErrorsWriter io.Writer
+}
+
+func (i *NewSrcListerInput) Validate() error {
 	checkSrcDir := func(srcDir interface{}) error {
 		assertedSrcDir, ok := srcDir.(string)
 		if !ok {
@@ -42,25 +50,27 @@ func (s *sourceLister) Validate() error {
 		return nil
 	}
 
-	return validation.ValidateStruct(s,
-		validation.Field(s.SrcRootDir, validation.Required, validation.By(checkSrcDir)),
-		validation.Field(s.FilesWriter, validation.Required),
-		validation.Field(s.DirsWriter, validation.Required),
-		validation.Field(s.ErrorsWriter, validation.Required),
+	return validation.ValidateStruct(i,
+		validation.Field(&i.SrcRootDir, validation.Required, validation.By(checkSrcDir)),
+		validation.Field(&i.DirsWriter, validation.Required, validation.NotNil),
+		validation.Field(&i.FilesWriter, validation.Required, validation.NotNil),
+		validation.Field(&i.ErrorsWriter, validation.Required, validation.NotNil),
 	)
 }
 
-func NewSourceLister(srcRootDir string, dirsWriter, filesWriter, errorsWriter bufio.Writer) (SourceLister, error) {
-	srcLister := &sourceLister{
-		SrcRootDir:   srcRootDir,
-		DirsWriter:   dirsWriter,
-		FilesWriter:  filesWriter,
-		ErrorsWriter: errorsWriter,
+func NewSourceLister(input *NewSrcListerInput) (SourceLister, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
 	}
 
-	err := srcLister.Validate()
+	srcLister := &sourceLister{
+		SrcRootDir:   input.SrcRootDir,
+		DirsWriter:   bufio.NewWriter(input.DirsWriter),
+		FilesWriter:  bufio.NewWriter(input.FilesWriter),
+		ErrorsWriter: bufio.NewWriter(input.ErrorsWriter),
+	}
 
-	return srcLister, err
+	return srcLister, nil
 }
 
 func (s *sourceLister) Do() error {

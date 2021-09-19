@@ -31,7 +31,7 @@ func TestBackupDirSkeleton_Do_missing_source_dir(t *testing.T) {
 	testDirReader := strings.NewReader(paths)
 	targetRootPath, err := os.MkdirTemp("", "testTarget_*")
 	require.NoError(t, err)
-	testTask := BackupDirSkeleton{
+	testTask := backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: testDirReader,
 		TargetRootPath:       targetRootPath,
@@ -63,7 +63,7 @@ func TestBackupDirSkeleton_Do_success(t *testing.T) {
 	testDirReader := strings.NewReader(paths)
 	targetRootPath, err := os.MkdirTemp("", "testTarget_*")
 	require.NoError(t, err)
-	testTask := BackupDirSkeleton{
+	testTask := backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: testDirReader,
 		TargetRootPath:       targetRootPath,
