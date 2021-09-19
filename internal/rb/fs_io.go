@@ -62,5 +62,3 @@ func (rber RecursiveBackupper) copyFile(sourcePath, targetPath string) (time.Tim
 	_, err = io.Copy(dest, src)
 	return time.Now(), err
 }
-
-

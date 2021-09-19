@@ -13,7 +13,7 @@ import (
 func PrepareData(source, target string, logsFlag *string, recoveryFlag *bool) (string, error) {
 	fmt.Printf("Source directory: %s\n", source)
 	fmt.Printf("Target directory: %s\n", target)
-	if (*recoveryFlag) {
+	if *recoveryFlag {
 		fmt.Printf("Copying files not found on %s\n", target)
 	}
 	previousExecutionLogPath := *logsFlag

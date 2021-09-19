@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 
+	val "github.com/AppleGamer22/recursive-backup/internal/validationhelpers"
 	"github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -31,27 +31,8 @@ type NewSrcListerInput struct {
 }
 
 func (i *NewSrcListerInput) Validate() error {
-	checkSrcDir := func(srcDir interface{}) error {
-		assertedSrcDir, ok := srcDir.(string)
-		if !ok {
-			return errors.New("must be a string")
-		}
-		fileInfo, err := os.Stat(assertedSrcDir)
-		if err != nil {
-			return errors.New("must be accessible")
-		}
-		if !fileInfo.IsDir() {
-			return errors.New("must be a directory path")
-		}
-		_, err = os.ReadDir(assertedSrcDir)
-		if err != nil {
-			return errors.New("must be readable")
-		}
-		return nil
-	}
-
 	return validation.ValidateStruct(i,
-		validation.Field(&i.SrcRootDir, validation.Required, validation.By(checkSrcDir)),
+		validation.Field(&i.SrcRootDir, validation.Required, validation.By(val.CheckDirReadable)),
 		validation.Field(&i.DirsWriter, validation.Required, validation.NotNil),
 		validation.Field(&i.FilesWriter, validation.Required, validation.NotNil),
 		validation.Field(&i.ErrorsWriter, validation.Required, validation.NotNil),
