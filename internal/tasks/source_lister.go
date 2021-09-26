@@ -12,7 +12,7 @@ import (
 	"github.com/go-ozzo/ozzo-validation/v4"
 )
 
-type SourceLister interface {
+type SourceListerAPI interface {
 	Do() error
 }
 
@@ -39,7 +39,7 @@ func (i *NewSrcListerInput) Validate() error {
 	)
 }
 
-func NewSourceLister(input *NewSrcListerInput) (SourceLister, error) {
+func NewSourceLister(input *NewSrcListerInput) (SourceListerAPI, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -55,7 +55,14 @@ func NewSourceLister(input *NewSrcListerInput) (SourceLister, error) {
 }
 
 func (s *sourceLister) Do() error {
-	return filepath.WalkDir(s.SrcRootDir, s.walkDirFunc)
+	if err := filepath.WalkDir(s.SrcRootDir, s.walkDirFunc); err != nil {
+		return err
+	}
+	_ = s.DirsWriter.Flush()
+	_ = s.FilesWriter.Flush()
+	_ = s.ErrorsWriter.Flush()
+
+	return nil
 }
 
 func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error {
@@ -85,7 +92,7 @@ func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error 
 		}
 	default:
 		err = errors.New("unexpected_element")
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
+		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("path: %s, type: %v error_msg: %v\n", path, d.Type(), err))
 		if err != nil {
 			return err
 		}

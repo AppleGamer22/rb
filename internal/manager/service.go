@@ -10,19 +10,17 @@ import (
 
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
-	val "github.com/AppleGamer22/recursive-backup/internal/validationhelpers"
 	"github.com/AppleGamer22/recursive-backup/internal/workers"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-type Manager interface {
-	ListSourceRecursively() error
+type API interface {
+	ListSources() error
 	CreateTargetDirSkeleton() error
-	ProcessFilesCopyRequest(filesList io.Reader)
+	RequestFilesCopy(filesList io.Reader)
 	HandleFilesCopyResponse()
 }
 
-type manager struct {
+type service struct {
 	// orientation
 	SourceRootDir string
 	TargetRootDir string
@@ -43,7 +41,7 @@ type manager struct {
 	FileBackupLogWriter io.Writer
 }
 
-type NewManagerInput struct {
+type ServiceInitInput struct {
 	SourceRootDir          string
 	TargetRootDir          string
 	ListingDirPathsWriter  io.Writer
@@ -54,29 +52,25 @@ type NewManagerInput struct {
 	FileBackupLogWriter    io.Writer
 }
 
-func (i NewManagerInput) Validate() error {
-	return validation.ValidateStruct(&i,
-		validation.Field(&i.SourceRootDir, validation.Required, validation.By(val.CheckDirReadable)),
-		validation.Field(&i.TargetRootDir, validation.Required, validation.By(val.CheckDirReadable)),
-		validation.Field(&i.ListingDirPathsWriter, validation.Required),
-		validation.Field(&i.ListingFilePathsWriter, validation.Required),
-		validation.Field(&i.ListingErrorsLogWriter, validation.Required),
-		validation.Field(&i.FilePathsReader, validation.Required),
-		validation.Field(&i.FileCopyPipelineLength, validation.Required),
-		validation.Field(&i.FileBackupLogWriter, validation.Required),
-	)
-}
+//func (i ServiceInitInput) Validate() error {
+//	return validation.ValidateStruct(&i,
+//		validation.Field(&i.SourceRootDir, validation.Required, validation.By(val.CheckDirReadable)),
+//		validation.Field(&i.TargetRootDir, validation.Required, validation.By(val.CheckDirReadable)),
+//		validation.Field(&i.ListingDirPathsWriter, validation.Required),
+//		validation.Field(&i.ListingFilePathsWriter, validation.Required),
+//		validation.Field(&i.ListingErrorsLogWriter, validation.Required),
+//		validation.Field(&i.FilePathsReader, validation.Required),
+//		validation.Field(&i.FileCopyPipelineLength, validation.Required),
+//		validation.Field(&i.FileBackupLogWriter, validation.Required),
+//	)
+//}
 
-func NewManager(in NewManagerInput) (Manager, error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
-
+func NewService(in ServiceInitInput) API {
 	tasksPipelineChannel := make(chan tasks.BackupFile, in.FileCopyPipelineLength)
 	fileBackupResponsesChannel := make(chan tasks.BackupFileResponse, in.FileCopyPipelineLength)
 	fileBackupWorkers := initFileWorkers(in.SourceRootDir, in.TargetRootDir, in.FileCopyPipelineLength, tasksPipelineChannel)
 
-	return &manager{
+	return &service{
 		SourceRootDir:          in.SourceRootDir,
 		TargetRootDir:          in.TargetRootDir,
 		ListingDirPathsWriter:  in.ListingDirPathsWriter,
@@ -87,7 +81,7 @@ func NewManager(in NewManagerInput) (Manager, error) {
 		ResponsesChannel:       fileBackupResponsesChannel,
 		FileBackupWorkers:      fileBackupWorkers,
 		FileBackupLogWriter:    in.FileBackupLogWriter,
-	}, nil
+	}
 }
 
 func initFileWorkers(srcRootDir, targetRootDir string, numFileCopyWorkers int, bc chan tasks.BackupFile) []workers.FileBackupWorker {
@@ -98,7 +92,7 @@ func initFileWorkers(srcRootDir, targetRootDir string, numFileCopyWorkers int, b
 	return fileWorkers
 }
 
-func (m *manager) ListSourceRecursively() error {
+func (m *service) ListSources() error {
 	newSourceListerInput := &tasks.NewSrcListerInput{
 		SrcRootDir:   m.SourceRootDir,
 		DirsWriter:   m.ListingDirPathsWriter,
@@ -114,7 +108,7 @@ func (m *manager) ListSourceRecursively() error {
 	return sourceLister.Do()
 }
 
-func (m *manager) CreateTargetDirSkeleton() error {
+func (m *service) CreateTargetDirSkeleton() error {
 	bufferedErrorsWriter := bufio.NewWriter(m.ListingErrorsLogWriter)
 	task := tasks.NewBackupDirSkeleton(m.SourceRootDir, m.DirPathsReader, m.TargetRootDir)
 	errs := task.Do()
@@ -136,7 +130,7 @@ func (m *manager) CreateTargetDirSkeleton() error {
 	return nil
 }
 
-func (m *manager) ProcessFilesCopyRequest(filesList io.Reader) {
+func (m *service) RequestFilesCopy(filesList io.Reader) {
 	const replaceCount = 1
 	buf := bufio.NewScanner(filesList)
 	for buf.Scan() {
@@ -151,7 +145,7 @@ func (m *manager) ProcessFilesCopyRequest(filesList io.Reader) {
 	}
 }
 
-func (m *manager) HandleFilesCopyResponse() {
+func (m *service) HandleFilesCopyResponse() {
 	buf := bufio.NewWriter(m.FileBackupLogWriter)
 	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source\n") //todo: relocate
 	buf.WriteString(headerLine)
