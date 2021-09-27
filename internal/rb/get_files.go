@@ -12,20 +12,20 @@ import (
 )
 
 type RecursiveBackupper struct {
-	SourceRoot string
-	TargetRoot string
-	StartTime  time.Time
+	SourceRoot            string
+	TargetRoot            string
+	StartTime             time.Time
 	PreviousExecutionTime *time.Time
-	RecoveryMode bool
+	RecoveryMode          bool
 }
 
 func NewRecursiveBackupper(sourceRoot string, targetRoot string, previousExecutionTime *time.Time, recover bool) RecursiveBackupper {
 	return RecursiveBackupper{
-		SourceRoot: sourceRoot,
-		TargetRoot: targetRoot,
-		StartTime: time.Now(),
+		SourceRoot:            sourceRoot,
+		TargetRoot:            targetRoot,
+		StartTime:             time.Now(),
 		PreviousExecutionTime: previousExecutionTime,
-		RecoveryMode: recover,
+		RecoveryMode:          recover,
 	}
 }
 

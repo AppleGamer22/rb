@@ -16,11 +16,11 @@ func TestBackupDirSkeleton_Do_missing_source_dir(t *testing.T) {
 	srcRootPath, err := os.MkdirTemp("", "srcDir_*")
 	t.Log("srcRootPath: ", srcRootPath)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "one", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"one", 0755)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "two", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"two", 0755)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "three", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"three", 0755)
 	require.NoError(t, err)
 	paths := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n",
 		srcRootPath,
@@ -49,11 +49,11 @@ func TestBackupDirSkeleton_Do_success(t *testing.T) {
 	srcRootPath, err := os.MkdirTemp("", "srcDir_*")
 	t.Log("srcRootPath: ", srcRootPath)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "one", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"one", 0755)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "two", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"two", 0755)
 	require.NoError(t, err)
-	err = os.MkdirAll(srcRootPath + string(os.PathSeparator) + "three", 0755)
+	err = os.MkdirAll(srcRootPath+string(os.PathSeparator)+"three", 0755)
 	require.NoError(t, err)
 	paths := fmt.Sprintf("%s\n%s\n%s\n%s\n",
 		srcRootPath,

@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 
+	val "github.com/AppleGamer22/recursive-backup/internal/validationhelpers"
 	"github.com/go-ozzo/ozzo-validation/v4"
 )
 
-type SourceLister interface {
+type SourceListerAPI interface {
 	Do() error
 }
 
@@ -31,34 +31,15 @@ type NewSrcListerInput struct {
 }
 
 func (i *NewSrcListerInput) Validate() error {
-	checkSrcDir := func(srcDir interface{}) error {
-		assertedSrcDir, ok := srcDir.(string)
-		if !ok {
-			return errors.New("must be a string")
-		}
-		fileInfo, err := os.Stat(assertedSrcDir)
-		if err != nil {
-			return errors.New("must be accessible")
-		}
-		if !fileInfo.IsDir() {
-			return errors.New("must be a directory path")
-		}
-		_, err = os.ReadDir(assertedSrcDir)
-		if err != nil {
-			return errors.New("must be readable")
-		}
-		return nil
-	}
-
 	return validation.ValidateStruct(i,
-		validation.Field(&i.SrcRootDir, validation.Required, validation.By(checkSrcDir)),
+		validation.Field(&i.SrcRootDir, validation.Required, validation.By(val.CheckDirReadable)),
 		validation.Field(&i.DirsWriter, validation.Required, validation.NotNil),
 		validation.Field(&i.FilesWriter, validation.Required, validation.NotNil),
 		validation.Field(&i.ErrorsWriter, validation.Required, validation.NotNil),
 	)
 }
 
-func NewSourceLister(input *NewSrcListerInput) (SourceLister, error) {
+func NewSourceLister(input *NewSrcListerInput) (SourceListerAPI, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -74,7 +55,14 @@ func NewSourceLister(input *NewSrcListerInput) (SourceLister, error) {
 }
 
 func (s *sourceLister) Do() error {
-	return filepath.WalkDir(s.SrcRootDir, s.walkDirFunc)
+	if err := filepath.WalkDir(s.SrcRootDir, s.walkDirFunc); err != nil {
+		return err
+	}
+	_ = s.DirsWriter.Flush()
+	_ = s.FilesWriter.Flush()
+	_ = s.ErrorsWriter.Flush()
+
+	return nil
 }
 
 func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error {
@@ -104,7 +92,7 @@ func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error 
 		}
 	default:
 		err = errors.New("unexpected_element")
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
+		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("path: %s, type: %v error_msg: %v\n", path, d.Type(), err))
 		if err != nil {
 			return err
 		}
