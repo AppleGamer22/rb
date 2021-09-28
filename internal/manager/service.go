@@ -10,94 +10,47 @@ import (
 
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
-	"github.com/AppleGamer22/recursive-backup/internal/workers"
+	val "github.com/AppleGamer22/recursive-backup/internal/validationhelpers"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type API interface {
-	ListSources() error
-	CreateTargetDirSkeleton() error
-	RequestFilesCopy(filesList io.Reader)
-	HandleFilesCopyResponse()
+	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error
+	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) error
+	RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse)
+	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
 }
 
 type service struct {
-	// orientation
 	SourceRootDir string
 	TargetRootDir string
-
-	// source listing dependencies
-	ListingDirPathsWriter  io.Writer
-	ListingFilePathsWriter io.Writer
-	ListingErrorsLogWriter io.Writer
-
-	// directories skeleton dependencies
-	DirPathsReader io.Reader
-
-	// files backup dependencies
-	FilePathsReader     io.Reader
-	TasksPipeline       chan tasks.BackupFile
-	ResponsesChannel    chan tasks.BackupFileResponse
-	FileBackupWorkers   []workers.FileBackupWorker
-	FileBackupLogWriter io.Writer
 }
 
 type ServiceInitInput struct {
-	SourceRootDir          string
-	TargetRootDir          string
-	ListingDirPathsWriter  io.Writer
-	ListingFilePathsWriter io.Writer
-	ListingErrorsLogWriter io.Writer
-	FilePathsReader        io.Reader
-	FileCopyPipelineLength int
-	FileBackupLogWriter    io.Writer
+	SourceRootDir string
+	TargetRootDir string
 }
 
-//func (i ServiceInitInput) Validate() error {
-//	return validation.ValidateStruct(&i,
-//		validation.Field(&i.SourceRootDir, validation.Required, validation.By(val.CheckDirReadable)),
-//		validation.Field(&i.TargetRootDir, validation.Required, validation.By(val.CheckDirReadable)),
-//		validation.Field(&i.ListingDirPathsWriter, validation.Required),
-//		validation.Field(&i.ListingFilePathsWriter, validation.Required),
-//		validation.Field(&i.ListingErrorsLogWriter, validation.Required),
-//		validation.Field(&i.FilePathsReader, validation.Required),
-//		validation.Field(&i.FileCopyPipelineLength, validation.Required),
-//		validation.Field(&i.FileBackupLogWriter, validation.Required),
-//	)
-//}
+func (i ServiceInitInput) Validate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(&i.SourceRootDir, validation.Required, validation.By(val.CheckDirReadable)),
+		validation.Field(&i.TargetRootDir, validation.Required, validation.By(val.CheckDirReadable)),
+	)
+}
 
 func NewService(in ServiceInitInput) API {
-	tasksPipelineChannel := make(chan tasks.BackupFile, in.FileCopyPipelineLength)
-	fileBackupResponsesChannel := make(chan tasks.BackupFileResponse, in.FileCopyPipelineLength)
-	fileBackupWorkers := initFileWorkers(in.SourceRootDir, in.TargetRootDir, in.FileCopyPipelineLength, tasksPipelineChannel)
-
 	return &service{
-		SourceRootDir:          in.SourceRootDir,
-		TargetRootDir:          in.TargetRootDir,
-		ListingDirPathsWriter:  in.ListingDirPathsWriter,
-		ListingFilePathsWriter: in.ListingFilePathsWriter,
-		ListingErrorsLogWriter: in.ListingErrorsLogWriter,
-		FilePathsReader:        nil,
-		TasksPipeline:          tasksPipelineChannel,
-		ResponsesChannel:       fileBackupResponsesChannel,
-		FileBackupWorkers:      fileBackupWorkers,
-		FileBackupLogWriter:    in.FileBackupLogWriter,
+		SourceRootDir: in.SourceRootDir,
+		TargetRootDir: in.TargetRootDir,
 	}
 }
 
-func initFileWorkers(srcRootDir, targetRootDir string, numFileCopyWorkers int, bc chan tasks.BackupFile) []workers.FileBackupWorker {
-	fileWorkers := make([]workers.FileBackupWorker, numFileCopyWorkers)
-	for i := range fileWorkers {
-		fileWorkers[i] = workers.NewFileBackupWorker(srcRootDir, targetRootDir, bc)
-	}
-	return fileWorkers
-}
-
-func (m *service) ListSources() error {
+func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error {
 	newSourceListerInput := &tasks.NewSrcListerInput{
 		SrcRootDir:   m.SourceRootDir,
-		DirsWriter:   m.ListingDirPathsWriter,
-		FilesWriter:  m.ListingFilePathsWriter,
-		ErrorsWriter: m.ListingErrorsLogWriter,
+		DirsWriter:   dirsWriter,
+		FilesWriter:  filesWriter,
+		ErrorsWriter: errorsWriter,
 	}
 
 	sourceLister, err := tasks.NewSourceLister(newSourceListerInput)
@@ -108,9 +61,9 @@ func (m *service) ListSources() error {
 	return sourceLister.Do()
 }
 
-func (m *service) CreateTargetDirSkeleton() error {
-	bufferedErrorsWriter := bufio.NewWriter(m.ListingErrorsLogWriter)
-	task := tasks.NewBackupDirSkeleton(m.SourceRootDir, m.DirPathsReader, m.TargetRootDir)
+func (m *service) CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) error {
+	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
+	task := tasks.NewBackupDirSkeleton(m.SourceRootDir, m.TargetRootDir, dirsReader)
 	errs := task.Do()
 	for _, err := range errs {
 		switch err.(type) {
@@ -130,7 +83,7 @@ func (m *service) CreateTargetDirSkeleton() error {
 	return nil
 }
 
-func (m *service) RequestFilesCopy(filesList io.Reader) {
+func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse) {
 	const replaceCount = 1
 	buf := bufio.NewScanner(filesList)
 	for buf.Scan() {
@@ -139,17 +92,17 @@ func (m *service) RequestFilesCopy(filesList io.Reader) {
 			CreationRequestTime: time.Now(),
 			SourcePath:          srcPath,
 			TargetPath:          strings.Replace(srcPath, m.SourceRootDir, m.TargetRootDir, replaceCount),
-			ResponseChannel:     m.ResponsesChannel,
+			ResponseChannel:     responseChan,
 		}
 		task.Do()
 	}
 }
 
-func (m *service) HandleFilesCopyResponse() {
-	buf := bufio.NewWriter(m.FileBackupLogWriter)
+func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse) {
+	buf := bufio.NewWriter(logWriter)
 	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source\n") //todo: relocate
 	buf.WriteString(headerLine)
-	for resp := range m.ResponsesChannel {
+	for resp := range responseChan {
 		buf.WriteString(fileCopyResponseString(resp))
 	}
 }

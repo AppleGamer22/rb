@@ -18,8 +18,6 @@ func TestNewManager(t *testing.T) {
 	targetRootDir, err := os.MkdirTemp("", "managerTargetDir_*")
 	require.NoError(t, err)
 	t.Log("target root dir: ", targetRootDir)
-	writer := new(strings.Builder)
-	reader := new(strings.Reader)
 
 	type testCase struct {
 		title          string
@@ -32,12 +30,6 @@ func TestNewManager(t *testing.T) {
 			input: ServiceInitInput{
 				SourceRootDir:          srcRootDir,
 				TargetRootDir:          targetRootDir,
-				ListingDirPathsWriter:  writer,
-				ListingFilePathsWriter: writer,
-				ListingErrorsLogWriter: writer,
-				FilePathsReader:        reader,
-				FileCopyPipelineLength: 2,
-				FileBackupLogWriter:    writer,
 			},
 		},
 	}
@@ -47,15 +39,12 @@ func TestNewManager(t *testing.T) {
 			m := NewService(tc.input)
 			assert.NoError(t, err)
 			assert.NotNil(t, m)
-			assertedService, ok := m.(*service)
-			assert.True(t, ok)
-			assert.Len(t, assertedService.FileBackupWorkers, tc.input.FileCopyPipelineLength)
-			assert.Equal(t, cap(assertedService.TasksPipeline), tc.input.FileCopyPipelineLength)
 		})
 	}
 }
 
 func TestListSources(t *testing.T) {
+	// given
 	srcRootDir, err := os.MkdirTemp("", "msgListSrcDir_*")
 	t.Log("source root dir: ", srcRootDir)
 	require.NoError(t, err)
@@ -106,23 +95,21 @@ func TestListSources(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.title, func(t *testing.T) {
-			var dirPaths = &strings.Builder{}
-			var filePaths = &strings.Builder{}
-			var errorsLog = &strings.Builder{}
+			dirsWriter := &strings.Builder{}
+			filesWriter := &strings.Builder{}
+			errorsWriter := &strings.Builder{}
 			testRoot := tc.setupDirFunc(t, tc.testDirName)
 			api := NewService(ServiceInitInput{
 				SourceRootDir:          testRoot,
-				ListingDirPathsWriter:  dirPaths,
-				ListingFilePathsWriter: filePaths,
-				ListingErrorsLogWriter: errorsLog,
 			})
+			 // when
+			err = api.ListSources(dirsWriter, filesWriter, errorsWriter)
 
-			err = api.ListSources()
-
+			// then
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedDirPaths(testRoot), dirPaths.String())
-			assert.Equal(t, tc.expectedFilePaths, filePaths.String())
-			assert.Equal(t, tc.expectedErrorsLog, errorsLog.String())
+			assert.Equal(t, tc.expectedDirPaths(testRoot), dirsWriter.String())
+			assert.Equal(t, tc.expectedFilePaths, filesWriter.String())
+			assert.Equal(t, tc.expectedErrorsLog, errorsWriter.String())
 		})
 	}
 }
