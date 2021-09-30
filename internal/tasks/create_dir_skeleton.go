@@ -14,7 +14,7 @@ type BackupDirSkeleton interface {
 	Do() []error
 }
 
-func NewBackupDirSkeleton(srcRootPath string, srcDirReader io.Reader, targetRootPath string) BackupDirSkeleton {
+func NewBackupDirSkeleton(srcRootPath string, targetRootPath string, srcDirReader io.Reader) BackupDirSkeleton {
 	return &backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: srcDirReader,
