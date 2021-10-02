@@ -38,7 +38,7 @@ func TestBackupDirSkeleton_Do_missing_source_dir(t *testing.T) {
 	}
 
 	// when
-	errs := testTask.Do()
+	_, errs := testTask.Do()
 
 	assert.Len(t, errs, 1)
 	assert.EqualError(t, errs[0], fmt.Sprintf("missed directories: [%s]", filepath.Join(srcRootPath, "no-real")))
@@ -70,7 +70,7 @@ func TestBackupDirSkeleton_Do_success(t *testing.T) {
 	}
 
 	// when
-	errs := testTask.Do()
+	_, errs := testTask.Do()
 
 	assert.Len(t, errs, 0)
 }
