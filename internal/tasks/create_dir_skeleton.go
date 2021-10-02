@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"sort"
@@ -11,10 +12,10 @@ import (
 )
 
 type BackupDirSkeleton interface {
-	Do() []error
+	Do() (io.Reader, []error)
 }
 
-func NewBackupDirSkeleton(srcRootPath string, targetRootPath string, srcDirReader io.Reader) BackupDirSkeleton {
+func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRootPath string) BackupDirSkeleton {
 	return &backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: srcDirReader,
@@ -28,24 +29,31 @@ type backupDirSkeleton struct {
 	TargetRootPath       string
 }
 
-func (b *backupDirSkeleton) Do() []error {
+func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 	var errs []error
-
 	dirs, err := b.extractLongPaths()
 	if err != nil {
 		errs = append(errs, err)
-		return errs
+		return nil, errs
 	}
 
+	builder := strings.Builder{}
 	for _, srcDirPath := range dirs {
 		targetDirPath := b.TargetRootPath + strings.TrimPrefix(srcDirPath, b.SrcRootPath)
 		err = os.MkdirAll(targetDirPath, 0755)
 		if err != nil {
 			errs = append(errs, err)
+		} else {
+			builder.WriteString(fmt.Sprintf("%s\n", targetDirPath))
 		}
 	}
 
-	return errs
+	paths := strings.Split(builder.String(), "\n")
+	sort.Strings(paths)
+	out := strings.Join(paths, "\n")
+	out = strings.TrimPrefix(out, "\n")
+
+	return strings.NewReader(out), errs
 }
 
 func (b *backupDirSkeleton) extractLongPaths() ([]string, error) {

@@ -16,7 +16,7 @@ import (
 
 type API interface {
 	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error
-	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) error
+	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error)
 	RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
 }
@@ -61,10 +61,10 @@ func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) e
 	return sourceLister.Do()
 }
 
-func (m *service) CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) error {
+func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error) {
 	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
-	task := tasks.NewBackupDirSkeleton(m.SourceRootDir, m.TargetRootDir, dirsReader)
-	errs := task.Do()
+	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir)
+	createdDirsReader, errs := task.Do()
 	for _, err := range errs {
 		switch err.(type) {
 		case rberrors.DirSkeletonError:
@@ -77,10 +77,11 @@ func (m *service) CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.
 			bufferedErrorsWriter.WriteString(msg)
 		}
 	}
+	bufferedErrorsWriter.Flush()
 	if len(errs) > 0 {
-		return errors.New("CreateTargetDirSkeleton completed with errors")
+		return createdDirsReader, errors.New("CreateTargetDirSkeleton completed with errors")
 	}
-	return nil
+	return createdDirsReader, nil
 }
 
 func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse) {
