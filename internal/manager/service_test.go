@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,8 +167,10 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 			subDirs:     []string{},
 			setupFunc: func(t *testing.T, testDirName string) string {
 				testPath := filepath.Join(srcRootDir, testDirName)
-				os.MkdirAll(filepath.Join(testPath, "src"), 0755)
-				os.MkdirAll(filepath.Join(testPath, "target"), 0755)
+				err = os.MkdirAll(filepath.Join(testPath, "src"), 0755)
+				require.NoError(t, err)
+				err = os.MkdirAll(filepath.Join(testPath, "target"), 0755)
+				require.NoError(t, err)
 				return testPath
 			},
 			expectedDirPathsFunc: func(testRootDir string) io.Reader {
@@ -182,9 +186,12 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 			subDirs:     []string{"one", "two", filepath.Join("two", "three")},
 			setupFunc: func(t *testing.T, testDirName string) string {
 				testPath := filepath.Join(srcRootDir, testDirName)
-				os.MkdirAll(filepath.Join(testPath, "src", "one"), 0755)
-				os.MkdirAll(filepath.Join(testPath, "src", "two", "three"), 0755)
-				os.MkdirAll(filepath.Join(testPath, "target"), 0755)
+				err = os.MkdirAll(filepath.Join(testPath, "src", "one"), 0755)
+				require.NoError(t, err)
+				err = os.MkdirAll(filepath.Join(testPath, "src", "two", "three"), 0755)
+				require.NoError(t, err)
+				err = os.MkdirAll(filepath.Join(testPath, "target"), 0755)
+				require.NoError(t, err)
 				return testPath
 			},
 			expectedDirPathsFunc: func(targetRootDir string) io.Reader {
@@ -226,6 +233,117 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 				assert.Equal(t, tc.expectedDirPathsFunc(testTargetDir), createdDirsReader)
 			}
 			assert.Equal(t, tc.expectedErrorsLogFunc(srcRootDir), errorsWriter.String())
+		})
+	}
+}
+
+func TestFilesCopySuccess(t *testing.T) {
+	// given
+	setupTestFunc := func(t *testing.T, testDirPath string, fileSubPaths, missingPaths []string) (srcPath, targetPath string, srcFilesReader io.Reader) {
+		targetDirPath := filepath.Join(testDirPath, "target")
+		err := os.MkdirAll(targetDirPath, 0755)
+		require.NoError(t, err)
+
+		missingMap := make(map[string]bool)
+		for _, p := range missingPaths {
+			missingMap[p] = true
+		}
+
+		srcDirPath := filepath.Join(testDirPath, "src")
+		err = os.MkdirAll(srcDirPath, 0755)
+		require.NoError(t, err)
+		var filesList strings.Builder
+		allPaths := append(fileSubPaths, missingPaths...)
+		for _, subPath := range allPaths {
+			filePath := filepath.Join(srcDirPath, subPath)
+			if _, ok := missingMap[subPath]; !ok {
+				dirPath := filepath.Dir(filePath)
+				err := os.MkdirAll(dirPath, 0755)
+				require.NoError(t, err)
+				err = os.WriteFile(filePath, []byte("Hello"), 0755)
+				require.NoError(t, err)
+			}
+			_, err := filesList.WriteString(fmt.Sprintf("%s\n", filePath))
+			require.NoError(t, err)
+		}
+		filesReader := strings.NewReader(filesList.String())
+
+		return srcDirPath, targetDirPath, filesReader
+	}
+
+	expectedLogsFunc := func(t *testing.T, testRootDir string, filePaths, missingPaths []string) []string {
+		var out []string
+		for _, p := range filePaths {
+			out = append(out, fmt.Sprintf("true,0,%s/target/%s,%s/src/%s,%s", testRootDir, p, testRootDir, p, "no_error"))
+		}
+		for _, p := range missingPaths {
+			errorMsg := fmt.Sprintf("stat %s/src/%s: no such file or directory", testRootDir, p)
+			out = append(out, fmt.Sprintf("false,0,%s/target/%s,%s/src/%s,%s", testRootDir, p, testRootDir, p, errorMsg))
+		}
+		return out
+	}
+
+	testCases := []struct {
+		title                string
+		responseChan         chan tasks.BackupFileResponse
+		testDirName          string
+		filesSubPaths        []string
+		missingFilesSubPaths []string
+	}{
+		{
+			title:         "with a single file",
+			responseChan:  make(chan tasks.BackupFileResponse, 1),
+			testDirName:   "singleFile",
+			filesSubPaths: []string{"file_one"},
+		}, {
+			title:         "with multiple files",
+			responseChan:  make(chan tasks.BackupFileResponse, 3),
+			testDirName:   "multipleFiles",
+			filesSubPaths: []string{"one", "two", filepath.Join("three", "four", "five")},
+		}, {
+			title:                "with missing files files",
+			responseChan:         make(chan tasks.BackupFileResponse, 3),
+			testDirName:          "multipleFiles",
+			missingFilesSubPaths: []string{filepath.Join("missing", "foo"), filepath.Join("missing", "bar")},
+		},
+	}
+
+	testRootDir, err := os.MkdirTemp("", "testFilesCopy_*")
+	t.Log("source root dir: ", testRootDir)
+	require.NoError(t, err)
+
+	for _, tc := range testCases {
+		t.Run(tc.title, func(t *testing.T) {
+			testDirPath := filepath.Join(testRootDir, tc.testDirName)
+			srcTestPath, targetTestPath, srcFileReader := setupTestFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
+			api := NewService(ServiceInitInput{
+				SourceRootDir: srcTestPath,
+				TargetRootDir: targetTestPath,
+			})
+			expectedLogs := expectedLogsFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
+
+			// when
+			api.RequestFilesCopy(srcFileReader, tc.responseChan)
+
+			// then
+			var logWriter strings.Builder
+			go api.HandleFilesCopyResponse(&logWriter, tc.responseChan)
+			time.Sleep(time.Millisecond * 5)
+			logString := strings.TrimSuffix(logWriter.String(), "\n")
+			logSlices := strings.Split(logString, "\n")
+			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
+			assert.Equal(t, "status,duration [milli-sec],target,source,error_message", logSlices[0])
+			assert.Equal(t, expectedLogs, logSlices[1:])
+
+			for _, subPath := range tc.filesSubPaths {
+				srcPath := filepath.Join(srcTestPath, subPath)
+				srcFileData, err := os.ReadFile(srcPath)
+				require.NoError(t, err)
+				targetPath := filepath.Join(targetTestPath, subPath)
+				targetFileData, err := os.ReadFile(targetPath)
+				require.NoError(t, err)
+				assert.Equal(t, srcFileData, targetFileData)
+			}
 		})
 	}
 }

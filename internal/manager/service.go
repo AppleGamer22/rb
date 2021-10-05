@@ -101,14 +101,15 @@ func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.
 
 func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse) {
 	buf := bufio.NewWriter(logWriter)
-	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source\n") //todo: relocate
+	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source,error_message\n") //todo: relocate
 	buf.WriteString(headerLine)
 	for resp := range responseChan {
 		buf.WriteString(fileCopyResponseString(resp))
+		buf.Flush()
 	}
 }
 
 func fileCopyResponseString(r tasks.BackupFileResponse) string {
 	duration := r.CompletionTime.Sub(r.CreationRequestTime).Milliseconds()
-	return fmt.Sprintf("%t,%d,%s,%s\n", r.CompletionStatus, duration, r.TargetPath, r.SourcePath)
+	return fmt.Sprintf("%t,%d,%s,%s,%s\n", r.CompletionStatus, duration, r.TargetPath, r.SourcePath, r.ErrorMessage)
 }
