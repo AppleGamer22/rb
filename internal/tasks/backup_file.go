@@ -3,7 +3,9 @@ package tasks
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -20,10 +22,20 @@ type BackupFileResponse struct {
 	SourcePath          string
 	TargetPath          string
 	CompletionStatus    bool
+	ErrorMessage        string
 }
 
 func (b *BackupFile) Do() {
 	_, err := copyFile(b.SourcePath, b.TargetPath)
+	switch err.(type) {
+	case *fs.PathError:
+		dirPath := filepath.Dir(b.TargetPath)
+		err = os.MkdirAll(dirPath, 0755)
+		if err == nil {
+			_, err = copyFile(b.SourcePath, b.TargetPath)
+		}
+	}
+
 	completionTime := time.Now()
 	defer func() {
 		b.ResponseChannel <- BackupFileResponse{
@@ -32,10 +44,18 @@ func (b *BackupFile) Do() {
 			SourcePath:          b.SourcePath,
 			TargetPath:          b.TargetPath,
 			CompletionStatus: func() bool {
+				var val bool
 				if err == nil {
-					return true
+					val = true
 				}
-				return false
+				return val
+			}(),
+			ErrorMessage: func() string {
+				var val = "no_error"
+				if err != nil {
+					val = err.Error()
+				}
+				return val
 			}(),
 		}
 	}()
