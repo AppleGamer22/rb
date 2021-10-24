@@ -11,18 +11,24 @@ import (
 )
 
 const (
-	parentDirNameRegexp        = ".*" + string(filepath.Separator) + "rb_[[:digit:]]{8}T[[:digit:]]{6}$"
-	timeDateFormat             = "20060102T150405"
-	parentDirNamePattern       = "rb_%s"
-	listDirName                = "list"
-	dirSkeletonDirName         = "dirs"
-	listedDirsFileNamePattern  = "list_dirs_%s"
-	listedFilesFileNamePattern = "list_files_%s"
-	listErrorsFileNamePattern  = "list_errors_%s"
-	fileTasksDirName           = "file_batches"
-	errorsDirName              = "errors"
-	operationLogFileName       = "oplog.txt"
-	defaultPerm                = 0755
+	parentDirNameRegexp           = ".*" + string(filepath.Separator) + "rb_[[:digit:]]{8}T[[:digit:]]{6}$"
+	timeDateFormat                = "20060102T150405"
+	parentDirNamePattern          = "rb_%s"
+	listDirName                   = "list"
+	dirSkeletonDirName            = "dirs"
+	sliceBatchesDirName           = "slice" + string(filepath.Separator) + "batches"
+	sliceBatchesErrorDir          = "slice" + string(filepath.Separator) + "errors"
+	listedDirsFileNamePattern     = "list_dirs_%s"
+	listedFilesFileNamePattern    = "list_files_%s"
+	listErrorsFileNamePattern     = "list_errors_%s"
+	skeletonDirsFileNamePattern   = "skeleton_dirs_%s"
+	skeletonErrorsFileNamePattern = "skeleton_errors_%s"
+	sliceBatchFileNamePattern     = "batch_%s"
+	sliceErrorsFileNamePattern    = "slice_errors_%s"
+	fileTasksDirName              = "file_batches"
+	errorsDirName                 = "errors"
+	operationLogFileName          = "oplog.txt"
+	defaultPerm                   = 0755
 )
 
 var rootDirPath string
@@ -53,6 +59,7 @@ func setup() error {
 		return errors.New("invalid regexp")
 	}
 	if re.Match([]byte(wd)) {
+		rootDirPath = wd
 		return nil
 	}
 
@@ -67,7 +74,7 @@ func setup() error {
 		return fmt.Errorf("failed to change work dir to %s", rootDirName)
 	}
 
-	operationLogLine := fmt.Sprintf("init %s", time.Now().String())
+	operationLogLine := "init"
 	if err = writeOpLog(operationLogLine); err != nil {
 		return err
 	}

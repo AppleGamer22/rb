@@ -13,7 +13,7 @@ func init() {
 	rootCmd.AddCommand(lsCmd)
 }
 
-var listDirPath = filepath.Join(rootDirPath, listDirName)
+var listDirPath string
 
 var lsCmd = &cobra.Command{
 	Use:   "ls",
@@ -31,6 +31,9 @@ var lsCmd = &cobra.Command{
 		if err := initCmd.RunE(cmd, args); err != nil {
 			return err
 		}
+
+		listDirPath = filepath.Join(rootDirPath, listDirName)
+
 		if err :=  os.Chdir(listDirPath); err != nil {
 			return err
 		}
@@ -42,7 +45,7 @@ var lsCmd = &cobra.Command{
 func listRunCommand(cmd *cobra.Command, args []string) error {
 	fmt.Printf("src: %v\n", cfg.Src)
 
-	operationLogLine := fmt.Sprintf("list start %s", time.Now().String())
+	operationLogLine := "list start"
 	if err := writeOpLog(operationLogLine); err != nil {
 		return err
 	}
@@ -69,8 +72,8 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	operationLogLine = fmt.Sprintf("list end %s", time.Now().String())
-	if err := writeOpLog(operationLogLine); err != nil {
+	operationLogLine = "list end"
+	if err = writeOpLog(operationLogLine); err != nil {
 		return err
 	}
 
