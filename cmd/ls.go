@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/manager"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/manager"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -14,27 +15,31 @@ func init() {
 }
 
 var listDirPath string
+var listFilesPath string
+var listDirsPath string
 
 var lsCmd = &cobra.Command{
-	Use:   "ls",
+	Use:   "ls [source-dir-path]",
 	Short: "list all source elements",
 	Long:  "list source recursively for all directories and files",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("arguments mismatch, expecting 1 argument")
+			return fmt.Errorf("arguments mismatch, expecting 1 argument: [source-dir-path]")
 		}
 		cfg.Src = args[0]
 
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := initCmd.RunE(cmd, args); err != nil {
-			return err
+		if err := validateWorkDir(true); err != nil {
+			if err = initCmd.RunE(cmd, args); err != nil {
+				return err
+			}
 		}
 
 		listDirPath = filepath.Join(rootDirPath, listDirName)
 
-		if err :=  os.Chdir(listDirPath); err != nil {
+		if err := os.Chdir(listDirPath); err != nil {
 			return err
 		}
 		return nil
@@ -43,8 +48,6 @@ var lsCmd = &cobra.Command{
 }
 
 func listRunCommand(cmd *cobra.Command, args []string) error {
-	fmt.Printf("src: %v\n", cfg.Src)
-
 	operationLogLine := "list start"
 	if err := writeOpLog(operationLogLine); err != nil {
 		return err
@@ -81,21 +84,25 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 }
 
 func createFilesForList() (dirs, files, errs *os.File, err error) {
-	dirs, err = os.Create(fmt.Sprintf(listedDirsFileNamePattern, time.Now().Format(timeDateFormat)))
+	now := time.Now()
+	listDirsName := fmt.Sprintf(listedDirsFileNamePattern, now.Format(timeDateFormat))
+	dirs, err = os.Create(listDirsName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	listDirsPath = filepath.Join(listDirPath, listDirsName)
 
-	files, err = os.Create(fmt.Sprintf(listedFilesFileNamePattern, time.Now().Format(timeDateFormat)))
+	listFilesName := fmt.Sprintf(listedFilesFileNamePattern, now.Format(timeDateFormat))
+	files, err = os.Create(listFilesName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	listFilesPath = filepath.Join(listDirPath, listFilesName)
 
-	errs, err = os.Create(fmt.Sprintf(listErrorsFileNamePattern, time.Now().Format(timeDateFormat)))
+	errs, err = os.Create(fmt.Sprintf(listErrorsFileNamePattern, now.Format(timeDateFormat)))
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	return dirs, files, errs, nil
 }
-

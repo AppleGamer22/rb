@@ -3,11 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -25,12 +26,9 @@ const (
 	skeletonErrorsFileNamePattern = "skeleton_errors_%s.log"
 	sliceBatchFileNamePattern     = "batch_%d.log"
 	sliceErrorsFileNamePattern    = "slice_errors_%s.log"
-	fileTasksDirName              = "file_batches"
-	copyLogDirPattern             = "file_copy_%s" + string(filepath.Separator) + "copy_log"
-	copyErrorLogDirPattern        = "file_copy_%s" + string(filepath.Separator) + "error_log"
+	slicesWorkDirName             = "slices"
+	copyLogDirPattern             = "copy" + string(filepath.Separator) + "copy_logs_%s"
 	copyBatchLogFileNamePattern   = "copy_batch_%d.log"
-	copyErrorLogFileName          = "copy_error.log"
-	errorsDirName                 = "errors"
 	operationLogFileName          = "oplog.log"
 	defaultPerm                   = 0755
 )
@@ -47,24 +45,18 @@ var initCmd = &cobra.Command{
 	Long:  "init initialised a new backup project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := setup(); err != nil {
+			_ = writeOpLog("init error")
 			return err
 		}
+		_ = writeOpLog("init successful finish")
 		return nil
 	},
 }
 
 func setup() error {
-	wd, err := os.Getwd()
+	err := validateWorkDir(false)
 	if err != nil {
 		return err
-	}
-	re := regexp.MustCompile(parentDirNameRegexp)
-	if re == nil {
-		return errors.New("invalid regexp")
-	}
-	if re.Match([]byte(wd)) {
-		rootDirPath = wd
-		return nil
 	}
 
 	rootDirName := fmt.Sprintf(parentDirNamePattern, time.Now().Format(timeDateFormat))
@@ -77,17 +69,31 @@ func setup() error {
 	if err = os.Chdir(rootDirName); err != nil {
 		return fmt.Errorf("failed to change work dir to %s", rootDirName)
 	}
+	_ = writeOpLog("init start")
 
-	operationLogLine := "init"
-	if err = writeOpLog(operationLogLine); err != nil {
-		return err
-	}
-
-	subDirs := []string{listDirName, dirSkeletonDirName, fileTasksDirName, errorsDirName}
+	subDirs := []string{listDirName, dirSkeletonDirName, slicesWorkDirName}
 	for _, subDir := range subDirs {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
 	}
+	return nil
+}
+
+func validateWorkDir(enforceProjectDir bool) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	re := regexp.MustCompile(parentDirNameRegexp)
+	if re == nil {
+		return errors.New("invalid regexp")
+	}
+	if !re.Match([]byte(wd)) {
+		if enforceProjectDir {
+			return errors.New("this command need to be executed from within a project directory")
+		}
+	}
+	rootDirPath = wd
 	return nil
 }
