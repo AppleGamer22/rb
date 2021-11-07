@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -70,14 +71,14 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 		case rberrors.DirSkeletonError:
 			for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
 				msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
-				bufferedErrorsWriter.WriteString(msg)
+				_, _ = bufferedErrorsWriter.WriteString(msg)
 			}
 		default:
 			msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
-			bufferedErrorsWriter.WriteString(msg)
+			_, _ = bufferedErrorsWriter.WriteString(msg)
 		}
 	}
-	bufferedErrorsWriter.Flush()
+	_ = bufferedErrorsWriter.Flush()
 	if len(errs) > 0 {
 		return createdDirsReader, errors.New("CreateTargetDirSkeleton completed with errors")
 	}
@@ -85,27 +86,28 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 }
 
 func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse) {
-	const replaceCount = 1
-	buf := bufio.NewScanner(filesList)
-	for buf.Scan() {
-		srcPath := buf.Text()
-		task := tasks.BackupFile{
+	scanner := bufio.NewScanner(filesList)
+	for scanner.Scan() {
+		srcFullPath := scanner.Text()
+		filePath := strings.TrimPrefix(srcFullPath, m.SourceRootDir)
+		targetFullPath := filepath.Join(m.TargetRootDir, filePath)
+		copyFileTask := &tasks.BackupFile{
 			CreationRequestTime: time.Now(),
-			SourcePath:          srcPath,
-			TargetPath:          strings.Replace(srcPath, m.SourceRootDir, m.TargetRootDir, replaceCount),
+			SourcePath:          srcFullPath,
+			TargetPath:          targetFullPath,
 			ResponseChannel:     responseChan,
 		}
-		task.Do()
+		copyFileTask.Do()
 	}
 }
 
 func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse) {
 	buf := bufio.NewWriter(logWriter)
-	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source,error_message\n") //todo: relocate
-	buf.WriteString(headerLine)
+	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source,error_message\n")
+	_, _ = buf.WriteString(headerLine)
 	for resp := range responseChan {
-		buf.WriteString(fileCopyResponseString(resp))
-		buf.Flush()
+		_, _ = buf.WriteString(fileCopyResponseString(resp))
+		_ = buf.Flush()
 	}
 }
 

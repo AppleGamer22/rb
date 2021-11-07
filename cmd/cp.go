@@ -1,30 +1,35 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
+	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 	"github.com/spf13/cobra"
 )
 
-var cpWorkDir string
-var fileCopyFilePath string
+var batchesDirPath string
+var copyQueueLen uint
+var responseChan chan tasks.BackupFileResponse
 
 func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "project root path")
-	cpCmd.Flags().StringVarP(&dirsListFilePath, "file-copy-list", "f", "", "file path to a file with the list of files to copy")
+	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "copy batches directory path")
+	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 5, "copy queue length")
 	rootCmd.AddCommand(cpCmd)
-
 }
 
 var cpCmd = &cobra.Command{
 	Use:   "cp",
 	Short: "copy files",
-	Long:  "copy files from source to target dir",
+	Long:  "copy files recursively from source to target dir",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
 			return fmt.Errorf("arguments mismatch, expecting 2 arguments")
@@ -35,70 +40,69 @@ var cpCmd = &cobra.Command{
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		cpWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
+		if len(rootDirPath) == 0 {
+			return errors.New("rootDirPath must be specified")
+		}
+		if len(batchesDirPath) == 0 {
+			return errors.New("batchesDirPath must be specified")
+		}
 		return nil
 	},
 	RunE: cpRunCommand,
 }
 
-func cpRunCommand(cmd *cobra.Command, args []string) error {
-	fmt.Printf("src: %v\n", cfg.Src)
+func cpRunCommand(_ *cobra.Command, _ []string) error {
+	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
+	err := filepath.WalkDir(batchesDirPath, walkDirFunc)
+	_ = writeOpLog("cp finished for all batches")
+	return err
+}
 
-	operationLogLine := "directory skeleton build start"
-	if err := writeOpLog(operationLogLine); err != nil {
-		return err
-	}
-
-	if err := os.Chdir(skeletonWorkDir); err != nil {
-		return err
-	}
-
-	inDirsListFile, outDirsListFile, errorsFile, err := setupForDirSkeleton()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = inDirsListFile.Close()
-		_ = outDirsListFile.Close()
-		_ = errorsFile.Close()
-	}()
-
+func walkDirFunc(path string, d fs.DirEntry, err error) error {
 	in := manager.ServiceInitInput{
 		SourceRootDir: cfg.Src,
 		TargetRootDir: cfg.Target,
 	}
 	service := manager.NewService(in)
-	var reader io.Reader
-	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile); err != nil {
+	switch {
+	case err != nil:
+		_ = writeOpLog(fmt.Sprintf("error with dir entry. path: %s. error: %s", path, err.Error()))
 		return err
-	}
-	if _, err = io.Copy(outDirsListFile, reader); err != nil {
-		return err
-	}
+	case d.Type().IsDir():
+		return nil
+	case d.Type().IsRegular():
+		_ = writeOpLog(fmt.Sprintf("cp start for batch %s", path))
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		re := regexp.MustCompile("[[:digit:]]+")
+		batchIDString := re.FindString(filepath.Base(path))
+		batchID, err := strconv.Atoi(batchIDString)
+		if err != nil {
+			return fmt.Errorf("failed to extract batch number from %s", path)
+		}
 
-	operationLogLine = "directory skeleton build end"
-	if err = writeOpLog(operationLogLine); err != nil {
-		return err
+		now := time.Now().Format(timeDateFormat)
+		copyLogDirName := fmt.Sprintf(copyLogDirPattern, now)
+		copyLogDirPath := filepath.Join(rootDirPath, copyLogDirName)
+		if err := os.MkdirAll(copyLogDirPath, 0755); err != nil {
+			return fmt.Errorf("failed to create copy log Dir. Error: %v", err)
+		}
+		copyLogFileName := fmt.Sprintf(copyBatchLogFileNamePattern, batchID)
+		copyLogFile, err := os.Create(filepath.Join(copyLogDirPath, copyLogFileName))
+		if err != nil {
+			return fmt.Errorf("failed to create copy log file. Error: %v", err)
+		}
+
+		responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
+		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
+		service.RequestFilesCopy(file, responseChan)
+		close(responseChan)
+		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s", path))
+	default:
+		return nil
 	}
 
 	return nil
-}
-
-func setupForDirSkeleton() (inDirsList, outDirsList, errs *os.File, err error) {
-	inDirsList, err = os.Open(dirsListFilePath)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	outDirsList, err = os.Create(fmt.Sprintf(skeletonDirsFileNamePattern, time.Now().Format(timeDateFormat)))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	errs, err = os.Create(fmt.Sprintf(skeletonErrorsFileNamePattern, time.Now().Format(timeDateFormat)))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return inDirsList, outDirsList, errs, nil
 }

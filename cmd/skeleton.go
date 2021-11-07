@@ -84,7 +84,7 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func setupForCopy() (inDirsList, outDirsList, errs *os.File, err error) {
+func setupForDirSkeleton() (inDirsList, outDirsList, errs *os.File, err error) {
 	inDirsList, err = os.Open(dirsListFilePath)
 	if err != nil {
 		return nil, nil, nil, err
