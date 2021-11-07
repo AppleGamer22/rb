@@ -26,12 +26,9 @@ const (
 	skeletonErrorsFileNamePattern = "skeleton_errors_%s.log"
 	sliceBatchFileNamePattern     = "batch_%d.log"
 	sliceErrorsFileNamePattern    = "slice_errors_%s.log"
-	fileTasksDirName              = "file_batches"
-	copyLogDirPattern             = "file_copy_%s" + string(filepath.Separator) + "copy_log"
-	copyErrorLogDirPattern        = "file_copy_%s" + string(filepath.Separator) + "error_log"
+	slicesWorkDirName             = "slices"
+	copyLogDirPattern             = "copy" + string(filepath.Separator) + "copy_logs_%s"
 	copyBatchLogFileNamePattern   = "copy_batch_%d.log"
-	copyErrorLogFileName          = "copy_error.log"
-	errorsDirName                 = "errors"
 	operationLogFileName          = "oplog.log"
 	defaultPerm                   = 0755
 )
@@ -47,8 +44,6 @@ var initCmd = &cobra.Command{
 	Short: "init rb project",
 	Long:  "init initialised a new backup project",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_ = writeOpLog("init start")
-
 		if err := setup(); err != nil {
 			_ = writeOpLog("init error")
 			return err
@@ -74,8 +69,9 @@ func setup() error {
 	if err = os.Chdir(rootDirName); err != nil {
 		return fmt.Errorf("failed to change work dir to %s", rootDirName)
 	}
+	_ = writeOpLog("init start")
 
-	subDirs := []string{listDirName, dirSkeletonDirName, fileTasksDirName, errorsDirName}
+	subDirs := []string{listDirName, dirSkeletonDirName, slicesWorkDirName}
 	for _, subDir := range subDirs {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)

@@ -38,7 +38,7 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
-	diffCmd.PersistentFlags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
-	diffCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
+	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
+	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
 	rootCmd.AddCommand(diffCmd)
 }

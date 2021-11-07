@@ -2,9 +2,21 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
+	"path/filepath"
 )
+
+var slicesWorkDirPath string
+
+func init() {
+	// slice dependency
+	fullCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
+
+	// cp dependency
+	fullCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 5, "copy queue length")
+
+	rootCmd.AddCommand(fullCmd)
+}
 
 var fullCmd = &cobra.Command{
 	Use:   "full [source-dir-path] [target-dir-path]",
@@ -18,14 +30,44 @@ var fullCmd = &cobra.Command{
 		cfg.Target = args[1]
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("numWorkers: %v\n", cfg.NumWorkers)
-		fmt.Printf("src: %v\n", cfg.Src)
-		fmt.Printf("target: %v\n", cfg.Target)
-	},
-}
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// init
+		if err := initCmd.RunE(cmd, args); err != nil {
+			return err
+		}
 
-func init() {
-	fullCmd.PersistentFlags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
-	rootCmd.AddCommand(fullCmd)
+		slicesWorkDirPath = filepath.Join(rootDirPath, "slice")
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// list
+		listDirPath = filepath.Join(rootDirPath, listDirName)
+		if err := lsCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		// skeleton
+		skeletonWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
+		dirsListFilePath = listDirsPath
+		if err := skeletonCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		// slice
+		filesListFilePath = listFilesPath
+		if err := sliceCmd.PreRunE(cmd, args); err != nil {
+			return err
+		}
+		if err := sliceCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		// cp
+		batchesDirPath = batchesTargetDirPath
+		if err := cpCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
