@@ -2,16 +2,17 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 var fullCmd = &cobra.Command{
-	Use:   "full",
+	Use:   "full [source-dir-path] [target-dir-path]",
 	Short: "full backup",
 	Long:  "with full backup all files and folders are copied from src to target",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
-			return fmt.Errorf("arguments mismatch, expecting 2 arguments")
+			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]

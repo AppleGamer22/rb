@@ -20,19 +20,19 @@ var copyQueueLen uint
 var responseChan chan tasks.BackupFileResponse
 
 func init() {
-	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "project root path")
-	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "copy batches directory path")
+	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
+	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
 	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 5, "copy queue length")
 	rootCmd.AddCommand(cpCmd)
 }
 
 var cpCmd = &cobra.Command{
-	Use:   "cp",
+	Use:   "cp [source-dir-path] [target-dir-path]",
 	Short: "copy files",
 	Long:  "copy files recursively from source to target dir",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
-			return fmt.Errorf("arguments mismatch, expecting 2 arguments")
+			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]

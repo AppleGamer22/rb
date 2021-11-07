@@ -3,11 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -46,25 +47,21 @@ var initCmd = &cobra.Command{
 	Short: "init rb project",
 	Long:  "init initialised a new backup project",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		_ = writeOpLog("init start")
+
 		if err := setup(); err != nil {
+			_ = writeOpLog("init error")
 			return err
 		}
+		_ = writeOpLog("init successful finish")
 		return nil
 	},
 }
 
 func setup() error {
-	wd, err := os.Getwd()
+	err := validateWorkDir(false)
 	if err != nil {
 		return err
-	}
-	re := regexp.MustCompile(parentDirNameRegexp)
-	if re == nil {
-		return errors.New("invalid regexp")
-	}
-	if re.Match([]byte(wd)) {
-		rootDirPath = wd
-		return nil
 	}
 
 	rootDirName := fmt.Sprintf(parentDirNamePattern, time.Now().Format(timeDateFormat))
@@ -78,16 +75,29 @@ func setup() error {
 		return fmt.Errorf("failed to change work dir to %s", rootDirName)
 	}
 
-	operationLogLine := "init"
-	if err = writeOpLog(operationLogLine); err != nil {
-		return err
-	}
-
 	subDirs := []string{listDirName, dirSkeletonDirName, fileTasksDirName, errorsDirName}
 	for _, subDir := range subDirs {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
 	}
+	return nil
+}
+
+func validateWorkDir(enforceProjectDir bool) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	re := regexp.MustCompile(parentDirNameRegexp)
+	if re == nil {
+		return errors.New("invalid regexp")
+	}
+	if !re.Match([]byte(wd)) {
+		if enforceProjectDir {
+			return errors.New("this command need to be executed from within a project directory")
+		}
+	}
+	rootDirPath = wd
 	return nil
 }

@@ -19,8 +19,8 @@ var filesListFilePath string
 var batchSize uint
 
 func init() {
-	sliceCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "project root path")
-	sliceCmd.Flags().StringVarP(&filesListFilePath, "files-list", "f", "", "files list file path")
+	sliceCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
+	sliceCmd.Flags().StringVarP(&filesListFilePath, "files-list-file-path", "f", "", "mandatory flag: files list file path")
 	sliceCmd.Flags().UintVarP(&batchSize, "batch-size", "b", defaultBatchSize, "maximum number of files in a batch")
 	rootCmd.AddCommand(sliceCmd)
 }
@@ -36,9 +36,13 @@ var sliceCmd = &cobra.Command{
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(rootDirPath) == 0 || len(filesListFilePath) == 0{
-			return errors.New("bad input")
+		if len(rootDirPath) == 0 {
+			return errors.New("project root path flag must be specified")
 		}
+		if len(filesListFilePath) == 0 {
+			return errors.New("files-list-file-path flag must be specified")
+		}
+
 		now := time.Now().Format(timeDateFormat)
 		batchesDirName := fmt.Sprintf(sliceBatchesDirNamePattern, now)
 		batchesTargetDirPath = filepath.Join(rootDirPath, batchesDirName)

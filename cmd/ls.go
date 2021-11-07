@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/manager"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/manager"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -16,12 +17,12 @@ func init() {
 var listDirPath string
 
 var lsCmd = &cobra.Command{
-	Use:   "ls",
+	Use:   "ls [source-dir-path]",
 	Short: "list all source elements",
 	Long:  "list source recursively for all directories and files",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("arguments mismatch, expecting 1 argument")
+			return fmt.Errorf("arguments mismatch, expecting 1 argument: [source-dir-path]")
 		}
 		cfg.Src = args[0]
 
@@ -43,8 +44,6 @@ var lsCmd = &cobra.Command{
 }
 
 func listRunCommand(cmd *cobra.Command, args []string) error {
-	fmt.Printf("src: %v\n", cfg.Src)
-
 	operationLogLine := "list start"
 	if err := writeOpLog(operationLogLine); err != nil {
 		return err

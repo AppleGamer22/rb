@@ -15,19 +15,19 @@ var skeletonWorkDir string
 var dirsListFilePath string
 
 func init() {
-	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "project root path")
-	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "directories list file path")
+	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
+	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
 	rootCmd.AddCommand(skeletonCmd)
 
 }
 
 var skeletonCmd = &cobra.Command{
-	Use:   "skeleton",
+	Use:   "skeleton [source-dir-path] [target-dir-path]",
 	Short: "create target directory skeleton",
 	Long:  "create directory skeleton in target",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
-			return fmt.Errorf("arguments mismatch, expecting 2 arguments")
+			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]
@@ -42,8 +42,6 @@ var skeletonCmd = &cobra.Command{
 }
 
 func skeletonRunCommand(cmd *cobra.Command, args []string) error {
-	fmt.Printf("src: %v\n", cfg.Src)
-
 	operationLogLine := "directory skeleton build start"
 	if err := writeOpLog(operationLogLine); err != nil {
 		return err
