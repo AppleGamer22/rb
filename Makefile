@@ -3,7 +3,7 @@
 # target usb, source smb
 
 VERSION:=1.0.0
-SOURCES:=./internal/*,./cmd
+SOURCES:=./internal/*
 BIN:=./bin
 BASE:=rb_$(VERSION)
 LINUX=$(BASE)_linux_amd64
