@@ -63,7 +63,7 @@ var fullCmd = &cobra.Command{
 		}
 
 		// cp
-		batchesDirPath = batchesTargetDirPath
+		batchesDirPath = batchesSourceDirPath
 		if err := cpCmd.RunE(cmd, args); err != nil {
 			return err
 		}

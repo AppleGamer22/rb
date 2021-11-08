@@ -13,7 +13,8 @@ import (
 
 const defaultBatchSize = 1000
 
-var batchesTargetDirPath string
+var batchesSourceDirPath string
+var batchesDoneDirPath string
 var batchesErrorsDirPath string
 var filesListFilePath string
 var batchSize uint
@@ -45,8 +46,9 @@ var sliceCmd = &cobra.Command{
 
 		now := time.Now().Format(timeDateFormat)
 		batchesDirName := fmt.Sprintf(sliceBatchesDirNamePattern, now)
-		batchesTargetDirPath = filepath.Join(rootDirPath, batchesDirName)
-		if err := os.MkdirAll(batchesTargetDirPath, 0755); err != nil {
+		batchesSourceDirPath = filepath.Join(rootDirPath, batchesDirName)
+		batchesDoneDirPath = filepath.Join(batchesSourceDirPath, sliceBatchesDoneDirName)
+		if err := os.MkdirAll(batchesDoneDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create batches target dir. %s\n", err.Error())
 		}
 
@@ -102,7 +104,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				_ = batchFile.Close()
 			}
 			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, batchCounter)
-			batchFilePath := filepath.Join(batchesTargetDirPath, batchFileName)
+			batchFilePath := filepath.Join(batchesSourceDirPath, batchFileName)
 			batchFile, err = os.Create(batchFilePath)
 			if err != nil {
 				_, _ = fmt.Fprintf(errorsFile, "failed to create batch file. batch_number: %d\n", batchCounter)

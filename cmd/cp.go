@@ -18,6 +18,7 @@ import (
 var batchesDirPath string
 var copyQueueLen uint
 var responseChan chan tasks.BackupFileResponse
+var digitsRE = regexp.MustCompile("[[:digit:]]+")
 
 func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
@@ -76,8 +77,8 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		re := regexp.MustCompile("[[:digit:]]+")
-		batchIDString := re.FindString(filepath.Base(path))
+		batchFileBasePath := filepath.Base(path)
+		batchIDString := digitsRE.FindString(batchFileBasePath)
 		batchID, err := strconv.Atoi(batchIDString)
 		if err != nil {
 			return fmt.Errorf("failed to extract batch number from %s", path)
@@ -86,7 +87,7 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		now := time.Now().Format(timeDateFormat)
 		copyLogDirName := fmt.Sprintf(copyLogDirPattern, now)
 		copyLogDirPath := filepath.Join(rootDirPath, copyLogDirName)
-		if err := os.MkdirAll(copyLogDirPath, 0755); err != nil {
+		if err = os.MkdirAll(copyLogDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create copy log Dir. Error: %v", err)
 		}
 		copyLogFileName := fmt.Sprintf(copyBatchLogFileNamePattern, batchID)
@@ -99,6 +100,10 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
 		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
+		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
+		if err = os.Rename(path, donePath); err != nil {
+			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s", path))
+		}
 		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s", path))
 	default:
 		return nil
