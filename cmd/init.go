@@ -13,6 +13,7 @@ import (
 
 const (
 	parentDirNameRegexp           = ".*" + string(filepath.Separator) + "rb_[[:digit:]]{8}T[[:digit:]]{6}$"
+	doneDirRegexp                 = ".*" + string(filepath.Separator) + "batches_[[:digit:]]{8}T[[:digit:]]{6}" + string(filepath.Separator) + "done"
 	timeDateFormat                = "20060102T150405"
 	parentDirNamePattern          = "rb_%s"
 	listDirName                   = "list"

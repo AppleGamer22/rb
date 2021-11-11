@@ -65,13 +65,17 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		TargetRootDir: cfg.Target,
 	}
 	service := manager.NewService(in)
+	re := regexp.MustCompile(doneDirRegexp)
+	if re == nil {
+		return errors.New("invalid regexp")
+	}
 	switch {
 	case err != nil:
 		_ = writeOpLog(fmt.Sprintf("error with dir entry. path: %s. error: %s", path, err.Error()))
 		return err
 	case d.Type().IsDir():
 		return nil
-	case d.Type().IsRegular():
+	case d.Type().IsRegular() && !re.Match([]byte(path)):
 		_ = writeOpLog(fmt.Sprintf("cp start for batch %s", path))
 		file, err := os.Open(path)
 		if err != nil {
