@@ -91,6 +91,7 @@ func createFilesForList() (dirs, files, errs *os.File, err error) {
 		return nil, nil, nil, err
 	}
 	listDirsPath = filepath.Join(listDirPath, listDirsName)
+	fmt.Println(listDirsPath)
 
 	listFilesName := fmt.Sprintf(listedFilesFileNamePattern, now.Format(timeDateFormat))
 	files, err = os.Create(listFilesName)
@@ -98,11 +99,14 @@ func createFilesForList() (dirs, files, errs *os.File, err error) {
 		return nil, nil, nil, err
 	}
 	listFilesPath = filepath.Join(listDirPath, listFilesName)
+	fmt.Println(listFilesPath)
 
-	errs, err = os.Create(fmt.Sprintf(listErrorsFileNamePattern, now.Format(timeDateFormat)))
+	errorsFileName := fmt.Sprintf(listErrorsFileNamePattern, now.Format(timeDateFormat))
+	errs, err = os.Create(errorsFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	fmt.Printf("%s/%s\n", listDirPath, errorsFileName)
 
 	return dirs, files, errs, nil
 }

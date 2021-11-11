@@ -91,20 +91,33 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 			return fmt.Errorf("failed to create copy log Dir. Error: %v", err)
 		}
 		copyLogFileName := fmt.Sprintf(copyBatchLogFileNamePattern, batchID)
-		copyLogFile, err := os.Create(filepath.Join(copyLogDirPath, copyLogFileName))
+		copyLogFilePath := filepath.Join(copyLogDirPath, copyLogFileName)
+		copyLogFile, err := os.Create(copyLogFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to create copy log file. Error: %v", err)
 		}
+		fmt.Println(copyLogFilePath)
 
 		responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
 		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
+		if batchesDoneDirPath == "" {
+			batchesDoneDirPath := filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
+			donePath = filepath.Join(batchesDoneDirPath, batchFileBasePath)
+			if _, err = os.Stat(batchesDoneDirPath); os.IsNotExist(err) {
+				if err := os.MkdirAll(batchesDoneDirPath, 0755); err != nil {
+					return fmt.Errorf("failed to create batches target dir. %s\n", err.Error())
+				}
+			}
+		}
 		if err = os.Rename(path, donePath); err != nil {
 			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s", path))
+		} else {
+			fmt.Printf("%s -> %s\n", path, donePath)
 		}
-		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s", path))
+		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s\n", path))
 	default:
 		return nil
 	}

@@ -88,15 +88,19 @@ func setupForDirSkeleton() (inDirsList, outDirsList, errs *os.File, err error) {
 		return nil, nil, nil, err
 	}
 
-	outDirsList, err = os.Create(fmt.Sprintf(skeletonDirsFileNamePattern, time.Now().Format(timeDateFormat)))
+	skeletonDirsFileName := fmt.Sprintf(skeletonDirsFileNamePattern, time.Now().Format(timeDateFormat))
+	outDirsList, err = os.Create(skeletonDirsFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	fmt.Printf("%s/%s\n", skeletonWorkDir, skeletonDirsFileName)
 
-	errs, err = os.Create(fmt.Sprintf(skeletonErrorsFileNamePattern, time.Now().Format(timeDateFormat)))
+	skeletonDirErrorsFile := fmt.Sprintf(skeletonErrorsFileNamePattern, time.Now().Format(timeDateFormat))
+	errs, err = os.Create(skeletonDirErrorsFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	fmt.Printf("%s/%s\n", skeletonWorkDir, skeletonDirErrorsFile)
 
 	return inDirsList, outDirsList, errs, nil
 }

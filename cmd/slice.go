@@ -111,6 +111,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				lineCounter = (lineCounter + 1) % batchSize
 				continue
 			}
+			fmt.Println(batchFilePath)
 			writer = bufio.NewWriter(batchFile)
 		}
 
@@ -143,6 +144,7 @@ func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create slice errors file. %s\n", err)
 	}
+	fmt.Println(errorsFilePath)
 
 	return inFilesList, sliceErrorsFile, nil
 }

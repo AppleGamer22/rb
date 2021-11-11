@@ -43,7 +43,7 @@ func init() {
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "init rb project",
-	Long:  "init initialised a new backup project",
+	Long:  "init initialized a new backup project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := setup(); err != nil {
 			_ = writeOpLog("init error")
@@ -77,6 +77,7 @@ func setup() error {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
+		fmt.Printf("%s/%s\n", rootDirPath, subDir)
 	}
 	return nil
 }
