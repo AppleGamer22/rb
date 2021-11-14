@@ -47,6 +47,8 @@ var cpCmd = &cobra.Command{
 		if len(batchesDirPath) == 0 {
 			return errors.New("batchesDirPath must be specified")
 		}
+		batchesToDoDirPath = filepath.Join(batchesDirPath, sliceBatchesToDoDirName)
+		batchesDoneDirPath = filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
 		return nil
 	},
 	RunE: cpRunCommand,
@@ -54,7 +56,7 @@ var cpCmd = &cobra.Command{
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
 	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
-	err := filepath.WalkDir(batchesDirPath, walkDirFunc)
+	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
 	_ = writeOpLog("cp finished for all batches")
 	return err
 }
@@ -65,17 +67,13 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		TargetRootDir: cfg.Target,
 	}
 	service := manager.NewService(in)
-	re := regexp.MustCompile(doneDirRegexp)
-	if re == nil {
-		return errors.New("invalid regexp")
-	}
 	switch {
 	case err != nil:
 		_ = writeOpLog(fmt.Sprintf("error with dir entry. path: %s. error: %s", path, err.Error()))
 		return err
 	case d.Type().IsDir():
 		return nil
-	case d.Type().IsRegular() && !re.Match([]byte(path)):
+	case d.Type().IsRegular():
 		_ = writeOpLog(fmt.Sprintf("cp start for batch %s", path))
 		file, err := os.Open(path)
 		if err != nil {
@@ -107,15 +105,6 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
-		if batchesDoneDirPath == "" {
-			batchesDoneDirPath := filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
-			donePath = filepath.Join(batchesDoneDirPath, batchFileBasePath)
-			if _, err = os.Stat(batchesDoneDirPath); os.IsNotExist(err) {
-				if err := os.MkdirAll(batchesDoneDirPath, 0755); err != nil {
-					return fmt.Errorf("failed to create batches target dir. %s\n", err.Error())
-				}
-			}
-		}
 		if err = os.Rename(path, donePath); err != nil {
 			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s", path))
 		} else {

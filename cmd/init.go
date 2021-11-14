@@ -20,6 +20,7 @@ const (
 	dirSkeletonDirName            = "dirs"
 	sliceBatchesDirNamePattern    = "slice" + string(filepath.Separator) + "batches_%s"
 	sliceBatchesDoneDirName       = "done"
+	sliceBatchesToDoDirName       = "todo"
 	sliceBatchesErrorDirPattern   = "slice" + string(filepath.Separator) + "errors_%s"
 	listedDirsFileNamePattern     = "list_dirs_%s.log"
 	listedFilesFileNamePattern    = "list_files_%s.log"
