@@ -14,6 +14,7 @@ import (
 const defaultBatchSize = 1000
 
 var batchesSourceDirPath string
+var batchesToDoDirPath string
 var batchesDoneDirPath string
 var batchesErrorsDirPath string
 var filesListFilePath string
@@ -49,13 +50,18 @@ var sliceCmd = &cobra.Command{
 		batchesSourceDirPath = filepath.Join(rootDirPath, batchesDirName)
 		batchesDoneDirPath = filepath.Join(batchesSourceDirPath, sliceBatchesDoneDirName)
 		if err := os.MkdirAll(batchesDoneDirPath, 0755); err != nil {
-			return fmt.Errorf("failed to create batches target dir. %s\n", err.Error())
+			return fmt.Errorf("failed to create batches target dir. %s", err.Error())
+		}
+
+		batchesToDoDirPath = filepath.Join(batchesSourceDirPath, sliceBatchesToDoDirName)
+		if err := os.MkdirAll(batchesToDoDirPath, 0755); err != nil {
+			return fmt.Errorf("failed to create batches source dir. %s", err.Error())
 		}
 
 		batchesErrorDirName := fmt.Sprintf(sliceBatchesErrorDirPattern, now)
 		batchesErrorsDirPath = filepath.Join(rootDirPath, batchesErrorDirName)
 		if err := os.MkdirAll(batchesErrorsDirPath, 0755); err != nil {
-			return fmt.Errorf("failed to create batches errors dir. %s\n", err.Error())
+			return fmt.Errorf("failed to create batches errors dir. %s", err.Error())
 		}
 		return nil
 	},
@@ -104,13 +110,14 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				_ = batchFile.Close()
 			}
 			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, batchCounter)
-			batchFilePath := filepath.Join(batchesSourceDirPath, batchFileName)
+			batchFilePath := filepath.Join(batchesToDoDirPath, batchFileName)
 			batchFile, err = os.Create(batchFilePath)
 			if err != nil {
 				_, _ = fmt.Fprintf(errorsFile, "failed to create batch file. batch_number: %d\n", batchCounter)
 				lineCounter = (lineCounter + 1) % batchSize
 				continue
 			}
+			fmt.Println(batchFilePath)
 			writer = bufio.NewWriter(batchFile)
 		}
 
@@ -134,15 +141,16 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 	inFilesList, err = os.Open(filesListFilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open input list file. %s\n", err)
+		return nil, nil, fmt.Errorf("failed to open input list file. %s", err)
 	}
 
 	errorsFileName := fmt.Sprintf(sliceErrorsFileNamePattern, time.Now().Format(timeDateFormat))
 	errorsFilePath := filepath.Join(batchesErrorsDirPath, errorsFileName)
 	sliceErrorsFile, err = os.Create(errorsFilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create slice errors file. %s\n", err)
+		return nil, nil, fmt.Errorf("failed to create slice errors file. %s", err)
 	}
+	fmt.Println(errorsFilePath)
 
 	return inFilesList, sliceErrorsFile, nil
 }

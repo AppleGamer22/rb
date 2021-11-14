@@ -47,6 +47,8 @@ var cpCmd = &cobra.Command{
 		if len(batchesDirPath) == 0 {
 			return errors.New("batchesDirPath must be specified")
 		}
+		batchesToDoDirPath = filepath.Join(batchesDirPath, sliceBatchesToDoDirName)
+		batchesDoneDirPath = filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
 		return nil
 	},
 	RunE: cpRunCommand,
@@ -54,7 +56,7 @@ var cpCmd = &cobra.Command{
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
 	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
-	err := filepath.WalkDir(batchesDirPath, walkDirFunc)
+	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
 	_ = writeOpLog("cp finished for all batches")
 	return err
 }
@@ -91,10 +93,12 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 			return fmt.Errorf("failed to create copy log Dir. Error: %v", err)
 		}
 		copyLogFileName := fmt.Sprintf(copyBatchLogFileNamePattern, batchID)
-		copyLogFile, err := os.Create(filepath.Join(copyLogDirPath, copyLogFileName))
+		copyLogFilePath := filepath.Join(copyLogDirPath, copyLogFileName)
+		copyLogFile, err := os.Create(copyLogFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to create copy log file. Error: %v", err)
 		}
+		fmt.Println(copyLogFilePath)
 
 		responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
@@ -103,8 +107,10 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
 		if err = os.Rename(path, donePath); err != nil {
 			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s", path))
+		} else {
+			fmt.Printf("%s -> %s\n", path, donePath)
 		}
-		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s", path))
+		_ = writeOpLog(fmt.Sprintf("cp finished for batch %s\n", path))
 	default:
 		return nil
 	}

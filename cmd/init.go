@@ -13,12 +13,14 @@ import (
 
 const (
 	parentDirNameRegexp           = ".*" + string(filepath.Separator) + "rb_[[:digit:]]{8}T[[:digit:]]{6}$"
+	doneDirRegexp                 = ".*" + string(filepath.Separator) + "batches_[[:digit:]]{8}T[[:digit:]]{6}" + string(filepath.Separator) + "done"
 	timeDateFormat                = "20060102T150405"
 	parentDirNamePattern          = "rb_%s"
 	listDirName                   = "list"
 	dirSkeletonDirName            = "dirs"
 	sliceBatchesDirNamePattern    = "slice" + string(filepath.Separator) + "batches_%s"
 	sliceBatchesDoneDirName       = "done"
+	sliceBatchesToDoDirName       = "todo"
 	sliceBatchesErrorDirPattern   = "slice" + string(filepath.Separator) + "errors_%s"
 	listedDirsFileNamePattern     = "list_dirs_%s.log"
 	listedFilesFileNamePattern    = "list_files_%s.log"
@@ -43,7 +45,7 @@ func init() {
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "init rb project",
-	Long:  "init initialised a new backup project",
+	Long:  "init initialized a new backup project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := setup(); err != nil {
 			_ = writeOpLog("init error")
@@ -77,6 +79,7 @@ func setup() error {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
+		fmt.Printf("%s/%s\n", rootDirPath, subDir)
 	}
 	return nil
 }
