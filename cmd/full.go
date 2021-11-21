@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"path/filepath"
+	"runtime"
 )
 
 var slicesWorkDirPath string
@@ -66,6 +67,10 @@ var fullCmd = &cobra.Command{
 		batchesDirPath = batchesSourceDirPath
 		if err := cpCmd.RunE(cmd, args); err != nil {
 			return err
+		}
+
+		if runtime.GOOS == "windows" {
+			fmt.Printf("\n>>> Please run:\n"+`rb clean -b "%s"`, batchesDirPath)
 		}
 
 		return nil
