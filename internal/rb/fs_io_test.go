@@ -1,1 +1,0 @@
-package rb_test

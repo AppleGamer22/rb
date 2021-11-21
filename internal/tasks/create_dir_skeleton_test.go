@@ -27,7 +27,8 @@ func TestBackupDirSkeleton_Do_missing_source_dir(t *testing.T) {
 		filepath.Join(srcRootPath, "one"),
 		filepath.Join(srcRootPath, "two"),
 		filepath.Join(srcRootPath, "three"),
-		filepath.Join(srcRootPath, "no-real"))
+		filepath.Join(srcRootPath, "no-real"),
+	)
 	testDirReader := strings.NewReader(paths)
 	targetRootPath, err := os.MkdirTemp("", "testTarget_*")
 	require.NoError(t, err)

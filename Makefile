@@ -14,10 +14,10 @@ all: test build
 build: $(LINUX) $(DARWIN) $(WINDOWS)
 
 test:
-		@echo "Testing $(VERSION) internal"
-		go test -v -cover ./internal/*
-		@echo "Testing $(VERSION) cmd"
-		go test -v -cover ./cmd/*
+	@echo "Testing $(VERSION) internal"
+	go test -v -cover ./internal/*
+	@echo "Testing $(VERSION) cmd"
+	go test -v -cover ./cmd/*
 
 linux: $(LINUX)
 

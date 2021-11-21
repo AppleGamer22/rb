@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -159,7 +161,7 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 				return nil
 			},
 			expectedErrorsLogFunc: func(testDirPath string) string {
-				return fmt.Sprintf("dir-skeleton-error missed-path: %s/missingSource/src/missing\n", testDirPath)
+				return fmt.Sprintf("dir-skeleton-error missed-path: %s%[2]cmissingSource%[2]csrc%[2]cmissing\n", testDirPath, filepath.Separator)
 			},
 		}, {
 			title:       "empty source directory",
@@ -274,11 +276,16 @@ func TestFilesCopySuccess(t *testing.T) {
 	expectedLogsFunc := func(t *testing.T, testRootDir string, filePaths, missingPaths []string) []string {
 		var out []string
 		for _, p := range filePaths {
-			out = append(out, fmt.Sprintf("true,0,%s/target/%s,%s/src/%s,%s", testRootDir, p, testRootDir, p, "no_error"))
+			out = append(out, fmt.Sprintf("true,0,%s,%s,%s", filepath.Join(testRootDir, "target", p), filepath.Join(testRootDir, "src", p), "no_error"))
 		}
 		for _, p := range missingPaths {
-			errorMsg := fmt.Sprintf("stat %s/src/%s: no such file or directory", testRootDir, p)
-			out = append(out, fmt.Sprintf("false,0,%s/target/%s,%s/src/%s,%s", testRootDir, p, testRootDir, p, errorMsg))
+			var errorMsg string
+			if runtime.GOOS == "windows" {
+				errorMsg = fmt.Sprintf("CreateFile %s: The system cannot find the path specified.", filepath.Join(testRootDir, "src", p))
+			} else {
+				errorMsg = fmt.Sprintf("stat %s: no such file or directory", filepath.Join(testRootDir, "src", p))
+			}
+			out = append(out, fmt.Sprintf("false,0,%s,%s,%s", filepath.Join(testRootDir, "target", p), filepath.Join(testRootDir, "src", p), errorMsg))
 		}
 		return out
 	}
@@ -296,10 +303,14 @@ func TestFilesCopySuccess(t *testing.T) {
 			testDirName:   "singleFile",
 			filesSubPaths: []string{"file_one"},
 		}, {
-			title:         "with multiple files",
-			responseChan:  make(chan tasks.BackupFileResponse, 3),
-			testDirName:   "multipleFiles",
-			filesSubPaths: []string{"one", "two", filepath.Join("three", "four", "five")},
+			title:        "with multiple files",
+			responseChan: make(chan tasks.BackupFileResponse, 3),
+			testDirName:  "multipleFiles",
+			filesSubPaths: []string{
+				"one",
+				"two",
+				filepath.Join("three", "four", "five"),
+			},
 		}, {
 			title:                "with missing files files",
 			responseChan:         make(chan tasks.BackupFileResponse, 3),
@@ -333,7 +344,26 @@ func TestFilesCopySuccess(t *testing.T) {
 			logSlices := strings.Split(logString, "\n")
 			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
 			assert.Equal(t, "status,duration [milli-sec],target,source,error_message", logSlices[0])
-			assert.Equal(t, expectedLogs, logSlices[1:])
+			partialLogSlices := logSlices[1:]
+			for i := 0; i < len(expectedLogs); i++ {
+				expectedLine := expectedLogs[i]
+				expectedLineItems := strings.Split(expectedLine, ",")
+				actualLine := partialLogSlices[i]
+				actualLineItems := strings.Split(actualLine, ",")
+
+				assert.Equal(t, len(expectedLineItems), len(actualLineItems), "unexpected line length")
+				assert.Equal(t, expectedLineItems[0], actualLineItems[0], "unexpected completion status")
+				expectedDuration, err := strconv.Atoi(expectedLineItems[1])
+				require.NoError(t, err, "unexpected duration")
+				assert.GreaterOrEqual(t, expectedDuration, 0, "unexpected duration")
+				actualDuration, err := strconv.Atoi(actualLineItems[1])
+				require.NoError(t, err, "unexpected duration")
+				assert.GreaterOrEqual(t, actualDuration, 0, "unexpected duration")
+				assert.Equal(t, expectedLineItems[2], actualLineItems[2], "unexpected target value")
+				assert.Equal(t, expectedLineItems[3], actualLineItems[3], "unexpected source value")
+				assert.Equal(t, expectedLineItems[4], actualLineItems[4], "unexpected message")
+			}
+			//assert.Equal(t, expectedLogs, logSlices[1:])
 
 			for _, subPath := range tc.filesSubPaths {
 				srcPath := filepath.Join(srcTestPath, subPath)
