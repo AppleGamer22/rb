@@ -106,7 +106,7 @@ func createFilesForList() (dirs, files, errs *os.File, err error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	fmt.Printf("%s/%s\n", listDirPath, errorsFileName)
+	fmt.Println(filepath.Join(listDirPath, errorsFileName))
 
 	return dirs, files, errs, nil
 }

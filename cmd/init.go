@@ -79,7 +79,7 @@ func setup() error {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
-		fmt.Printf("%s/%s\n", rootDirPath, subDir)
+		fmt.Println(filepath.Join(rootDirPath, subDir))
 	}
 	return nil
 }
