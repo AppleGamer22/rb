@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -124,19 +125,43 @@ func TestListSources(t *testing.T) {
 		}, {
 			title:       "with nested dirs",
 			testDirName: "nested-dirs",
-			files:       []string{"first.txt", "one/second.txt"},
-			subDirs:     []string{"one", "one/two", "one/two-two", "one/two/three"},
+			files: []string{
+				"first.txt",
+				filepath.Join("one", "second.txt"),
+			},
+			subDirs: []string{
+				"one",
+				filepath.Join("one", "two"),
+				filepath.Join("one", "two-two"),
+				filepath.Join("one", "two", "three"),
+			},
 		}, {
 			title:       "with irregular files",
 			testDirName: "nested-dirs",
-			files:       []string{"first.txt", "one/second.txt"},
-			subDirs:     []string{"", "one", "one/two", "one/two-two", "one/two/three"},
-			symSource:   "sym_src.txt",
-			symLinks:    []string{"sym_one", "one/sym_two"},
+			files: []string{
+				"first.txt",
+				filepath.Join("one", "second.txt"),
+			},
+			subDirs: []string{
+				"",
+				"one",
+				filepath.Join("one", "two"),
+				filepath.Join("one", "two-two"),
+				filepath.Join("one", "two", "three"),
+			},
+			symSource: "sym_src.txt",
+			symLinks: []string{
+				"sym_one",
+				filepath.Join("one", "sym_two"),
+			},
 		},
 	}
 
 	for _, tc := range testCases {
+		if runtime.GOOS == "windows" && len(tc.symLinks) > 0 {
+			return
+		}
+
 		t.Run(tc.title, func(t *testing.T) {
 			testPath := filepath.Join(srcRootDir, tc.testDirName)
 			t.Log("test-path: ", testPath)
