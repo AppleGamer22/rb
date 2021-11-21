@@ -3,10 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -52,6 +54,22 @@ var cpCmd = &cobra.Command{
 		return nil
 	},
 	RunE: cpRunCommand,
+	PostRunE: func(cmd *cobra.Command, args []string) error {
+		if runtime.GOOS != "windows" {
+			return nil
+		}
+		doneDirWalkFunc := func(path string, d fs.DirEntry, err error) error {
+			toBeRemovedPath := filepath.Join(batchesToDoDirPath, d.Name())
+			if err := os.Remove(toBeRemovedPath); err != nil {
+				writeOpLog(fmt.Sprintf("%s (%+v)", toBeRemovedPath, err))
+			}
+			return nil
+		}
+
+		_ = filepath.WalkDir(batchesDoneDirPath, doneDirWalkFunc)
+
+		return nil
+	},
 }
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
@@ -105,8 +123,9 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
-		if err = os.Rename(path, donePath); err != nil {
-			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s", path))
+
+		if err = moveFile(path, donePath); err != nil {
+			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s (%v)", path, err))
 		} else {
 			fmt.Printf("%s -> %s\n", path, donePath)
 		}
@@ -115,5 +134,41 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		return nil
 	}
 
+	return nil
+}
+
+func moveFile(sourcePath, targetPath string) error {
+	if runtime.GOOS == "windows" {
+		return copyFileOnWindows(sourcePath, targetPath)
+	} else {
+		if err := os.Rename(sourcePath, targetPath); err != nil {
+			return err
+		} else {
+			return nil
+		}
+	}
+}
+
+func copyFileOnWindows(sourcePath string, targetPath string) error {
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	targetFile, err := os.Create(targetPath)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(targetFile, sourceFile)
+	if err != nil {
+		return err
+	}
+	err = sourceFile.Close()
+	if err != nil {
+		return err
+	}
+	err = targetFile.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
