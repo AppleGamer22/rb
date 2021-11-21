@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -157,6 +158,10 @@ func TestListSources(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		if runtime.GOOS == "windows" && len(tc.symLinks) > 0 {
+			return
+		}
+
 		t.Run(tc.title, func(t *testing.T) {
 			testPath := filepath.Join(srcRootDir, tc.testDirName)
 			t.Log("test-path: ", testPath)
