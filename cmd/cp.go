@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -125,7 +124,7 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		_ = file.Close()
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
 
-		if err = moveFile(path, donePath); err != nil {
+		if err = os.Rename(path, donePath); err != nil {
 			_ = writeOpLog(fmt.Sprintf("failed to move batch file to done dir %s (%v)", path, err))
 		} else {
 			fmt.Printf("%s -> %s\n", path, donePath)
@@ -138,43 +137,43 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 	return nil
 }
 
-func moveFile(sourcePath, targetPath string) error {
-	if runtime.GOOS == "windows" {
-		if err := copyFileOnWindows(sourcePath, targetPath); err != nil {
-			fmt.Printf("%+v\n", err)
-			return err
-		} else {
-			return nil
-		}
-	} else {
-		if err := os.Rename(sourcePath, targetPath); err != nil {
-			return err
-		} else {
-			return nil
-		}
-	}
-}
-
-func copyFileOnWindows(sourcePath string, targetPath string) error {
-	sourceFile, err := os.Open(sourcePath)
-	if err != nil {
-		return err
-	}
-	targetFile, err := os.Create(targetPath)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(targetFile, sourceFile)
-	if err != nil {
-		return err
-	}
-	err = sourceFile.Close()
-	if err != nil {
-		return err
-	}
-	err = targetFile.Close()
-	if err != nil {
-		return err
-	}
-	return os.Remove(sourcePath)
-}
+//func moveFile(sourcePath, targetPath string) error {
+//	if runtime.GOOS == "windows" {
+//		if err := copyFileOnWindows(sourcePath, targetPath); err != nil {
+//			fmt.Printf("%+v\n", err)
+//			return err
+//		} else {
+//			return nil
+//		}
+//	} else {
+//		if err := os.Rename(sourcePath, targetPath); err != nil {
+//			return err
+//		} else {
+//			return nil
+//		}
+//	}
+//}
+//
+//func copyFileOnWindows(sourcePath string, targetPath string) error {
+//	sourceFile, err := os.Open(sourcePath)
+//	if err != nil {
+//		return err
+//	}
+//	targetFile, err := os.Create(targetPath)
+//	if err != nil {
+//		return err
+//	}
+//	_, err = io.Copy(targetFile, sourceFile)
+//	if err != nil {
+//		return err
+//	}
+//	err = sourceFile.Close()
+//	if err != nil {
+//		return err
+//	}
+//	err = targetFile.Close()
+//	if err != nil {
+//		return err
+//	}
+//	return os.Remove(sourcePath)
+//}
