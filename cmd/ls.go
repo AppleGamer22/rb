@@ -80,6 +80,8 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Printf("\n%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n", os.Args[0], listDirsPath, rootDirPath, cfg.Src)
+	fmt.Printf("\n%s slice -f \"%s\" -p \"%s\" -s [uint]\n", os.Args[0], listFilesPath, rootDirPath)
 	return nil
 }
 

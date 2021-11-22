@@ -81,6 +81,8 @@ func setup() error {
 		}
 		fmt.Println(filepath.Join(rootDirPath, subDir))
 	}
+
+	fmt.Printf("\n%s ls \"[source-dir-path]\"\n", os.Args[0])
 	return nil
 }
 

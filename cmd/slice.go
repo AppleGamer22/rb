@@ -63,6 +63,8 @@ var sliceCmd = &cobra.Command{
 		if err := os.MkdirAll(batchesErrorsDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create batches errors dir. %s", err.Error())
 		}
+
+		fmt.Printf("\n%s cp -b \"%s\" -p \"%s\" -q %d [source-dir-path] [target-dir-path]\n", os.Args[0], batchesSourceDirPath, rootDirPath, batchSize)
 		return nil
 	},
 	RunE: sliceRunCommand,
