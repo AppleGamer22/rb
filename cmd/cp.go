@@ -122,6 +122,7 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
 		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
+		_ = file.Close()
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
 
 		if err = moveFile(path, donePath); err != nil {
@@ -139,7 +140,12 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 
 func moveFile(sourcePath, targetPath string) error {
 	if runtime.GOOS == "windows" {
-		return copyFileOnWindows(sourcePath, targetPath)
+		if err := copyFileOnWindows(sourcePath, targetPath); err != nil {
+			fmt.Printf("%+v\n", err)
+			return err
+		} else {
+			return nil
+		}
 	} else {
 		if err := os.Rename(sourcePath, targetPath); err != nil {
 			return err
@@ -170,5 +176,5 @@ func copyFileOnWindows(sourcePath string, targetPath string) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return os.Remove(sourcePath)
 }
