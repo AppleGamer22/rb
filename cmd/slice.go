@@ -64,7 +64,6 @@ var sliceCmd = &cobra.Command{
 			return fmt.Errorf("failed to create batches errors dir. %s", err.Error())
 		}
 
-		fmt.Printf("\n%s cp -b \"%s\" -p \"%s\" -q %d [source-dir-path] [target-dir-path]\n", os.Args[0], batchesSourceDirPath, rootDirPath, batchSize)
 		return nil
 	},
 	RunE: sliceRunCommand,
@@ -94,7 +93,7 @@ func sliceRunCommand(_ *cobra.Command, _ []string) error {
 	if err = writeOpLog(operationLogLine); err != nil {
 		return err
 	}
-
+	fmt.Printf("\n%s cp -b \"%s\" -p \"%s\" -q %d [source-dir-path] [target-dir-path]\n", os.Args[0], batchesSourceDirPath, rootDirPath, batchSize)
 	return nil
 }
 
@@ -153,6 +152,5 @@ func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 		return nil, nil, fmt.Errorf("failed to create slice errors file. %s", err)
 	}
 	fmt.Println(errorsFilePath)
-
 	return inFilesList, sliceErrorsFile, nil
 }
