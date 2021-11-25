@@ -26,6 +26,7 @@ type BackupFileResponse struct {
 }
 
 func (b *BackupFile) Do() {
+	fmt.Printf(">> START: Copying %s to %s\n", b.SourcePath, b.TargetPath)
 	_, err := copyFile(b.SourcePath, b.TargetPath)
 	switch err.(type) {
 	case *fs.PathError:
@@ -43,13 +44,7 @@ func (b *BackupFile) Do() {
 			CompletionTime:      completionTime,
 			SourcePath:          b.SourcePath,
 			TargetPath:          b.TargetPath,
-			CompletionStatus: func() bool {
-				var val bool
-				if err == nil {
-					val = true
-				}
-				return val
-			}(),
+			CompletionStatus:    err == nil,
 			ErrorMessage: func() string {
 				var val = "no_error"
 				if err != nil {
@@ -59,6 +54,7 @@ func (b *BackupFile) Do() {
 			}(),
 		}
 	}()
+	fmt.Printf("<< END: Copying %s to %s\n", b.SourcePath, b.TargetPath)
 }
 
 func copyFile(src, dst string) (int64, error) {

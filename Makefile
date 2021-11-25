@@ -20,7 +20,7 @@ mac:
 	env GOOS=darwin GOARCH=arm64 go build -v -o ./bin/rb_$(VERSION)_mac_arm64
 
 windows:
-	env GOOS=windows GOARCH=amd64 go build  -v -o ./bin/rb_$(VERSION)_windows_amd64.exe
-	env GOOS=windows GOARCH=arm64 go build  -v -o ./bin/rb_$(VERSION)_windows_arm64.exe
+	env GOOS=windows GOARCH=amd64 go build -v -o ./bin/rb_$(VERSION)_windows_amd64.exe
+	env GOOS=windows GOARCH=arm64 go build -v -o ./bin/rb_$(VERSION)_windows_arm64.exe
 
 .PHONY: all build test linux mac windows
