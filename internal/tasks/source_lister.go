@@ -67,11 +67,10 @@ func (s *sourceLister) Do() error {
 func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error {
 	switch {
 	case err != nil:
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
-		if d.IsDir() {
-			return fs.SkipDir
-		}
-		return err
+		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
+		// if d.IsDir() {
+		// 	return fs.SkipDir
+		// }
 	case d.IsDir():
 		_, _ = s.DirsWriter.WriteString(fmt.Sprintf("%s\n", path))
 	case dirEntryError(d) != nil:
