@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -39,7 +41,12 @@ func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 
 	builder := strings.Builder{}
 	for _, srcDirPath := range dirs {
-		targetDirPath := b.TargetRootPath + strings.TrimPrefix(srcDirPath, b.SrcRootPath)
+		trimmedSrcDirPath := strings.TrimPrefix(srcDirPath, b.SrcRootPath)
+		expression := fmt.Sprintf("\\%c{2,}", filepath.Separator)
+		exp := regexp.MustCompile(expression)
+		targetDirPath := fmt.Sprintf("%s%c%s", b.TargetRootPath, filepath.Separator, trimmedSrcDirPath)
+		targetDirPath = exp.ReplaceAllString(targetDirPath, string(filepath.Separator))
+
 		err = os.MkdirAll(targetDirPath, 0755)
 		if err != nil {
 			errs = append(errs, err)
