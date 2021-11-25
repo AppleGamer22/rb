@@ -18,7 +18,7 @@ import (
 type API interface {
 	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error
 	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error)
-	RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse)
+	RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse, fileID *uint)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
 }
 
@@ -85,7 +85,7 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 	return createdDirsReader, nil
 }
 
-func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse) {
+func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse, fileID *uint) {
 	scanner := bufio.NewScanner(filesList)
 	for scanner.Scan() {
 		srcFullPath := scanner.Text()
@@ -96,8 +96,10 @@ func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.
 			SourcePath:          srcFullPath,
 			TargetPath:          targetFullPath,
 			ResponseChannel:     responseChan,
+			ID:                  *fileID,
 		}
 		copyFileTask.Do()
+		*fileID++
 	}
 }
 

@@ -325,6 +325,7 @@ func TestFilesCopySuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.title, func(t *testing.T) {
+			var fileID uint = 0
 			testDirPath := filepath.Join(testRootDir, tc.testDirName)
 			srcTestPath, targetTestPath, srcFileReader := setupTestFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
 			api := NewService(ServiceInitInput{
@@ -334,7 +335,7 @@ func TestFilesCopySuccess(t *testing.T) {
 			expectedLogs := expectedLogsFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
 
 			// when
-			api.RequestFilesCopy(srcFileReader, tc.responseChan)
+			api.RequestFilesCopy(srcFileReader, tc.responseChan, &fileID)
 
 			// then
 			var logWriter strings.Builder

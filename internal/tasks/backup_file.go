@@ -14,6 +14,7 @@ type BackupFile struct {
 	SourcePath          string
 	TargetPath          string
 	ResponseChannel     chan BackupFileResponse
+	ID                  uint
 }
 
 type BackupFileResponse struct {
@@ -26,7 +27,7 @@ type BackupFileResponse struct {
 }
 
 func (b *BackupFile) Do() {
-	fmt.Printf(">> START: Copying %s to %s\n", b.SourcePath, b.TargetPath)
+	fmt.Printf(">>[%d]>> START: Copying %s to %s\n", b.ID, b.SourcePath, b.TargetPath)
 	_, err := copyFile(b.SourcePath, b.TargetPath)
 	switch err.(type) {
 	case *fs.PathError:
@@ -54,7 +55,7 @@ func (b *BackupFile) Do() {
 			}(),
 		}
 	}()
-	fmt.Printf("<< END: Copying %s to %s\n", b.SourcePath, b.TargetPath)
+	fmt.Printf("<<[%d]<< END: Copying %s to %s\n", b.ID, b.SourcePath, b.TargetPath)
 }
 
 func copyFile(src, dst string) (int64, error) {
