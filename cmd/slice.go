@@ -93,7 +93,7 @@ func sliceRunCommand(_ *cobra.Command, _ []string) error {
 	if err = writeOpLog(operationLogLine); err != nil {
 		return err
 	}
-	fmt.Printf("\n%s cp -b \"%s\" -p \"%s\" -q %d [source-dir-path] [target-dir-path]\n", os.Args[0], batchesSourceDirPath, rootDirPath, batchSize)
+	fmt.Printf("\n%s cp -b \"%s\" -p \"%s\" -q 10 [source-dir-path] [target-dir-path]\n", os.Args[0], batchesSourceDirPath, rootDirPath)
 	return nil
 }
 
