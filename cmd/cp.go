@@ -90,6 +90,7 @@ func cpRunCommand(_ *cobra.Command, _ []string) error {
 	for i := 0; i < int(copyQueueLen); i++ {
 		requestChannel <- tasks.QuitRequest{}
 	}
+	time.Sleep(time.Second)
 	return err
 }
 
