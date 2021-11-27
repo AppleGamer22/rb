@@ -118,9 +118,8 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		fmt.Println(copyLogFilePath)
 
 		responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
-		var fileID uint = 0
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
-		service.RequestFilesCopy(file, responseChan, &fileID)
+		service.RequestFilesCopy(file, responseChan)
 		close(responseChan)
 		_ = file.Close()
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
