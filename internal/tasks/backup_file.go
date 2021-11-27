@@ -9,15 +9,24 @@ import (
 	"time"
 )
 
-type BackupFile struct {
+type GeneralRequest interface{}
+
+type QuitRequest struct{}
+
+type BackupFileRequest struct {
+	WorkerID            uint
+	FileID              uint
+	BatchID             uint
 	CreationRequestTime time.Time
 	SourcePath          string
 	TargetPath          string
 	ResponseChannel     chan BackupFileResponse
-	ID                  uint
 }
 
 type BackupFileResponse struct {
+	WorkerID            uint
+	FileID              uint
+	BatchID             uint
 	CreationRequestTime time.Time
 	CompletionTime      time.Time
 	SourcePath          string
@@ -26,8 +35,8 @@ type BackupFileResponse struct {
 	ErrorMessage        string
 }
 
-func (b *BackupFile) Do() {
-	fmt.Printf(">>[%d]>> START: Copying %s to %s\n", b.ID, b.SourcePath, b.TargetPath)
+func (b *BackupFileRequest) Do() BackupFileResponse {
+	fmt.Printf(">>[w%d][b%d][f%d]>> cp %s -> %s\n", b.WorkerID, b.BatchID, b.FileID, b.SourcePath, b.TargetPath)
 	_, err := copyFile(b.SourcePath, b.TargetPath)
 	switch err.(type) {
 	case *fs.PathError:
@@ -38,24 +47,28 @@ func (b *BackupFile) Do() {
 		}
 	}
 
-	completionTime := time.Now()
-	defer func() {
-		b.ResponseChannel <- BackupFileResponse{
-			CreationRequestTime: b.CreationRequestTime,
-			CompletionTime:      completionTime,
-			SourcePath:          b.SourcePath,
-			TargetPath:          b.TargetPath,
-			CompletionStatus:    err == nil,
-			ErrorMessage: func() string {
-				var val = "no_error"
-				if err != nil {
-					val = err.Error()
-				}
-				return val
-			}(),
-		}
-	}()
-	fmt.Printf("<<[%d]<< END: Copying %s to %s\n", b.ID, b.SourcePath, b.TargetPath)
+	response := BackupFileResponse{
+		WorkerID:            b.WorkerID,
+		BatchID:             b.BatchID,
+		FileID:              b.FileID,
+		CreationRequestTime: b.CreationRequestTime,
+		CompletionTime:      time.Now(),
+		SourcePath:          b.SourcePath,
+		TargetPath:          b.TargetPath,
+		CompletionStatus:    err == nil,
+		ErrorMessage: func() string {
+			var val = "success"
+			if err != nil {
+				val = err.Error()
+			}
+			return val
+		}(),
+	}
+
+	fmt.Printf("<<[w%d][b%d][f%d][%t]<< cp %s -> %s\n", b.WorkerID,
+		b.BatchID, b.FileID, response.CompletionStatus, b.SourcePath, b.TargetPath)
+
+	return response
 }
 
 func copyFile(src, dst string) (int64, error) {
