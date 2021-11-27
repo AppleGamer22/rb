@@ -3,14 +3,16 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
@@ -22,6 +24,13 @@ var copyQueueLen uint
 var responseChan chan tasks.BackupFileResponse
 var requestChannel chan tasks.GeneralRequest
 var digitsRE = regexp.MustCompile("[[:digit:]]+")
+var wgQuitConfirmation sync.WaitGroup
+var in manager.ServiceInitInput
+var service manager.API
+
+func UpdateOnQuit() {
+	wgQuitConfirmation.Done()
+}
 
 func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
@@ -40,6 +49,12 @@ var cpCmd = &cobra.Command{
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]
+
+		in = manager.ServiceInitInput{
+			SourceRootDir: cfg.Src,
+			TargetRootDir: cfg.Target,
+		}
+		service = manager.NewService(in)
 
 		return nil
 	},
@@ -77,11 +92,18 @@ func cpRunCommand(_ *cobra.Command, _ []string) error {
 	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
 
 	requestChannel = make(chan tasks.GeneralRequest, copyQueueLen)
-	defer close(requestChannel)
+	defer func() {
+		wgQuitConfirmation.Wait()
+		close(requestChannel)
+	}()
 	responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
-	defer close(responseChan)
+	defer func() {
+		service.WaitForAllResponses()
+		close(responseChan)
+	}()
 	for i := 1; i <= int(copyQueueLen); i++ {
-		workers.NewFileBackupWorker(uint(i), cfg.Src, cfg.Target, requestChannel)
+		wgQuitConfirmation.Add(1)
+		workers.NewFileBackupWorker(uint(i), cfg.Src, cfg.Target, requestChannel, UpdateOnQuit)
 	}
 
 	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
@@ -90,16 +112,10 @@ func cpRunCommand(_ *cobra.Command, _ []string) error {
 	for i := 0; i < int(copyQueueLen); i++ {
 		requestChannel <- tasks.QuitRequest{}
 	}
-	time.Sleep(time.Second)
 	return err
 }
 
 func walkDirFunc(path string, d fs.DirEntry, err error) error {
-	in := manager.ServiceInitInput{
-		SourceRootDir: cfg.Src,
-		TargetRootDir: cfg.Target,
-	}
-	service := manager.NewService(in)
 	switch {
 	case err != nil:
 		_ = writeOpLog(fmt.Sprintf("error with dir entry. path: %s. error: %s", path, err.Error()))

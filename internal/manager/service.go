@@ -7,6 +7,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
@@ -20,6 +21,7 @@ type API interface {
 	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error)
 	RequestFilesCopy(filesList io.Reader, batchID uint, requestChan chan tasks.GeneralRequest, responseChan chan tasks.BackupFileResponse)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
+	WaitForAllResponses()
 }
 
 type service struct {
@@ -31,6 +33,8 @@ type ServiceInitInput struct {
 	SourceRootDir string
 	TargetRootDir string
 }
+
+var wgRequestResponseCorelator sync.WaitGroup
 
 func (i ServiceInitInput) Validate() error {
 	return validation.ValidateStruct(&i,
@@ -101,15 +105,17 @@ func (m *service) RequestFilesCopy(filesList io.Reader, batchID uint, requestCha
 			ResponseChannel:     responseChan,
 		}
 		requestChan <- copyFileTask
+		wgRequestResponseCorelator.Add(1)
 		fileID++
 	}
 }
 
 func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse) {
 	buf := bufio.NewWriter(logWriter)
-	headerLine := fmt.Sprintf("status,duration [milli-sec],target,source,error_message\n")
+	headerLine := "status,duration [milli-sec],target,source,error_message\n"
 	_, _ = buf.WriteString(headerLine)
 	for resp := range responseChan {
+		wgRequestResponseCorelator.Done()
 		_, _ = buf.WriteString(fileCopyResponseString(resp))
 		_ = buf.Flush()
 	}
@@ -118,4 +124,8 @@ func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan
 func fileCopyResponseString(r tasks.BackupFileResponse) string {
 	duration := r.CompletionTime.Sub(r.CreationRequestTime).Milliseconds()
 	return fmt.Sprintf("%t,%d,%s,%s,%s\n", r.CompletionStatus, duration, r.TargetPath, r.SourcePath, r.ErrorMessage)
+}
+
+func (m *service) WaitForAllResponses() {
+	wgRequestResponseCorelator.Wait()
 }

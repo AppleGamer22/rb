@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,8 +9,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 	"github.com/stretchr/testify/assert"
@@ -343,15 +345,23 @@ func TestFilesCopySuccess(t *testing.T) {
 			})
 			expectedLogs := expectedLogsFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
 			sort.Strings(expectedLogs)
+			var wgRequest sync.WaitGroup
+			updateOnQuit := func() {
+				wgRequest.Done()
+			}
 			for i := 0; i < cap(tc.generalRequestChan); i++ {
-				workers.NewFileBackupWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan)
+				wgRequest.Add(1)
+				workers.NewFileBackupWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan, updateOnQuit)
 			}
 			var logWriter strings.Builder
 			go api.HandleFilesCopyResponse(&logWriter, tc.responseChan)
 
 			// when
 			api.RequestFilesCopy(srcFileReader, tc.batchID, tc.generalRequestChan, tc.responseChan)
-
+			wgRequest.Wait()
+			api.WaitForAllResponses()
+			close(tc.generalRequestChan)
+			close(tc.responseChan)
 			// then
 			time.Sleep(time.Millisecond * 500)
 			logString := strings.TrimSuffix(logWriter.String(), "\n")

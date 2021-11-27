@@ -13,14 +13,18 @@ type fileBackupWorker struct {
 	Pipeline       chan tasks.GeneralRequest
 	SourceRootPath string
 	TargetRootPath string
+	QuitFunc       UpdateOnQuitFunc
 }
 
-func NewFileBackupWorker(id uint, srcRootPath, targetRootPath string, p chan tasks.GeneralRequest) {
+type UpdateOnQuitFunc func()
+
+func NewFileBackupWorker(id uint, srcRootPath, targetRootPath string, p chan tasks.GeneralRequest, quitFunc UpdateOnQuitFunc) {
 	worker := &fileBackupWorker{
 		ID:             id,
 		Pipeline:       p,
 		SourceRootPath: srcRootPath,
 		TargetRootPath: targetRootPath,
+		QuitFunc:       quitFunc,
 	}
 	go worker.Handle()
 }
@@ -33,6 +37,7 @@ func (f *fileBackupWorker) Handle() {
 			response := assertedRequest.Do()
 			assertedRequest.ResponseChannel <- response
 		case tasks.QuitRequest:
+			f.QuitFunc()
 			return
 		default:
 			return
