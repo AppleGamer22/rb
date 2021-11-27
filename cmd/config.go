@@ -13,6 +13,7 @@ type rootConfig struct {
 	Target                string
 	RecoveryReferenceTime time.Time
 }
+
 var cfg rootConfig
 
 func parseTime(timeString string) (*time.Time, error) {
@@ -25,4 +26,3 @@ func parseTime(timeString string) (*time.Time, error) {
 	}
 	return &assertedTime, nil
 }
-

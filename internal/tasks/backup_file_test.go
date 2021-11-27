@@ -30,7 +30,7 @@ func TestBackupFile_Do_Success(t *testing.T) {
 	targetFilePath := filepath.Join(targetRootPath, fileName)
 	testResponseChannel := make(chan BackupFileResponse)
 	now := time.Now()
-	testTask := BackupFile{
+	testTask := BackupFileRequest{
 		CreationRequestTime: now,
 		SourcePath:          srcFilePath,
 		TargetPath:          targetFilePath,
@@ -38,10 +38,9 @@ func TestBackupFile_Do_Success(t *testing.T) {
 	}
 
 	// when
-	go testTask.Do()
+	resp := testTask.Do()
 
 	// then
-	resp := <-testTask.ResponseChannel
 	t.Log(resp)
 	assert.Equal(t, true, resp.CompletionStatus)
 	assert.Equal(t, srcFilePath, resp.SourcePath)
@@ -65,7 +64,7 @@ func TestBackupFile_Do_Fail(t *testing.T) {
 		targetFilePath := filepath.Join(targetRootPath, fileName)
 		testResponseChannel := make(chan BackupFileResponse)
 		now := time.Now()
-		testTask := BackupFile{
+		testTask := BackupFileRequest{
 			CreationRequestTime: now,
 			SourcePath:          srcFilePath,
 			TargetPath:          targetFilePath,
@@ -73,10 +72,9 @@ func TestBackupFile_Do_Fail(t *testing.T) {
 		}
 
 		// when
-		go testTask.Do()
+		resp := testTask.Do()
 
 		// then
-		resp := <-testTask.ResponseChannel
 		t.Log(resp)
 		assert.Equal(t, false, resp.CompletionStatus)
 		assert.Equal(t, srcFilePath, resp.SourcePath)

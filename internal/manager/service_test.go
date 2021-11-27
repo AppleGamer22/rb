@@ -2,10 +2,12 @@ package manager
 
 import (
 	"fmt"
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -276,7 +278,7 @@ func TestFilesCopySuccess(t *testing.T) {
 	expectedLogsFunc := func(t *testing.T, testRootDir string, filePaths, missingPaths []string) []string {
 		var out []string
 		for _, p := range filePaths {
-			out = append(out, fmt.Sprintf("true,0,%s,%s,%s", filepath.Join(testRootDir, "target", p), filepath.Join(testRootDir, "src", p), "no_error"))
+			out = append(out, fmt.Sprintf("true,0,%s,%s,%s", filepath.Join(testRootDir, "target", p), filepath.Join(testRootDir, "src", p), "success"))
 		}
 		for _, p := range missingPaths {
 			var errorMsg string
@@ -292,20 +294,26 @@ func TestFilesCopySuccess(t *testing.T) {
 
 	testCases := []struct {
 		title                string
+		batchID              uint
+		generalRequestChan   chan tasks.GeneralRequest
 		responseChan         chan tasks.BackupFileResponse
 		testDirName          string
 		filesSubPaths        []string
 		missingFilesSubPaths []string
 	}{
 		{
-			title:         "with a single file",
-			responseChan:  make(chan tasks.BackupFileResponse, 1),
-			testDirName:   "singleFile",
-			filesSubPaths: []string{"file_one"},
+			title:              "with a single file",
+			generalRequestChan: make(chan tasks.GeneralRequest, 1),
+			responseChan:       make(chan tasks.BackupFileResponse, 1),
+			batchID:            1,
+			testDirName:        "singleFile",
+			filesSubPaths:      []string{"file_one"},
 		}, {
-			title:        "with multiple files",
-			responseChan: make(chan tasks.BackupFileResponse, 3),
-			testDirName:  "multipleFiles",
+			title:              "with multiple files",
+			generalRequestChan: make(chan tasks.GeneralRequest, 3),
+			responseChan:       make(chan tasks.BackupFileResponse, 3),
+			batchID:            2,
+			testDirName:        "multipleFiles",
 			filesSubPaths: []string{
 				"one",
 				"two",
@@ -313,7 +321,9 @@ func TestFilesCopySuccess(t *testing.T) {
 			},
 		}, {
 			title:                "with missing files files",
+			generalRequestChan:   make(chan tasks.GeneralRequest, 3),
 			responseChan:         make(chan tasks.BackupFileResponse, 3),
+			batchID:              3,
 			testDirName:          "multipleFiles",
 			missingFilesSubPaths: []string{filepath.Join("missing", "foo"), filepath.Join("missing", "bar")},
 		},
@@ -332,19 +342,24 @@ func TestFilesCopySuccess(t *testing.T) {
 				TargetRootDir: targetTestPath,
 			})
 			expectedLogs := expectedLogsFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
-
-			// when
-			api.RequestFilesCopy(srcFileReader, tc.responseChan)
-
-			// then
+			sort.Strings(expectedLogs)
+			for i := 0; i < cap(tc.generalRequestChan); i++ {
+				workers.NewFileBackupWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan)
+			}
 			var logWriter strings.Builder
 			go api.HandleFilesCopyResponse(&logWriter, tc.responseChan)
-			time.Sleep(time.Millisecond * 5)
+
+			// when
+			api.RequestFilesCopy(srcFileReader, tc.batchID, tc.generalRequestChan, tc.responseChan)
+
+			// then
+			time.Sleep(time.Millisecond * 500)
 			logString := strings.TrimSuffix(logWriter.String(), "\n")
 			logSlices := strings.Split(logString, "\n")
 			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
 			assert.Equal(t, "status,duration [milli-sec],target,source,error_message", logSlices[0])
 			partialLogSlices := logSlices[1:]
+			sort.Strings(partialLogSlices)
 			for i := 0; i < len(expectedLogs); i++ {
 				expectedLine := expectedLogs[i]
 				expectedLineItems := strings.Split(expectedLine, ",")

@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 var batchesDirPath string
 var copyQueueLen uint
 var responseChan chan tasks.BackupFileResponse
+var requestChannel chan tasks.GeneralRequest
 var digitsRE = regexp.MustCompile("[[:digit:]]+")
 
 func init() {
@@ -73,8 +75,21 @@ var cpCmd = &cobra.Command{
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
 	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
+
+	requestChannel = make(chan tasks.GeneralRequest, copyQueueLen)
+	defer close(requestChannel)
+	responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
+	defer close(responseChan)
+	for i := 1; i <= int(copyQueueLen); i++ {
+		workers.NewFileBackupWorker(uint(i), cfg.Src, cfg.Target, requestChannel)
+	}
+
 	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
 	_ = writeOpLog("cp finished for all batches")
+
+	for i := 0; i < int(copyQueueLen); i++ {
+		requestChannel <- tasks.QuitRequest{}
+	}
 	return err
 }
 
@@ -117,10 +132,8 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		}
 		fmt.Println(copyLogFilePath)
 
-		responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
-		service.RequestFilesCopy(file, responseChan)
-		close(responseChan)
+		service.RequestFilesCopy(file, uint(batchID), requestChannel, responseChan)
 		_ = file.Close()
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
 

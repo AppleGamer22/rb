@@ -9,23 +9,34 @@ type FileBackupWorker interface {
 }
 
 type fileBackupWorker struct {
-	Pipeline       chan tasks.BackupFile
+	ID             uint
+	Pipeline       chan tasks.GeneralRequest
 	SourceRootPath string
 	TargetRootPath string
 }
 
-func NewFileBackupWorker(srcRootPath, targetRootPath string, p chan tasks.BackupFile) FileBackupWorker {
+func NewFileBackupWorker(id uint, srcRootPath, targetRootPath string, p chan tasks.GeneralRequest) {
 	worker := &fileBackupWorker{
+		ID:             id,
 		Pipeline:       p,
 		SourceRootPath: srcRootPath,
 		TargetRootPath: targetRootPath,
 	}
 	go worker.Handle()
-	return worker
 }
 
 func (f *fileBackupWorker) Handle() {
 	for task := range f.Pipeline {
-		task.Do()
+		switch assertedRequest := task.(type) {
+		case tasks.BackupFileRequest:
+			assertedRequest.WorkerID = f.ID
+			response := assertedRequest.Do()
+			assertedRequest.ResponseChannel <- response
+		case tasks.QuitRequest:
+			return
+		default:
+			return
+		}
+
 	}
 }
