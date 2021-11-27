@@ -80,6 +80,12 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	skeletonFormatString := "Run the following from the command line in order to create directories on the target directory:\n" +
+		"\t%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n"
+	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, rootDirPath, cfg.Src)
+	sliceFormatString := "\nThen, run the following from the command line in order to divide the workload into smaller chunks:\n" +
+		"\t%s slice -f \"%s\" -p \"%s\" -s [positive--integer-batch-size]\n"
+	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, rootDirPath)
 	return nil
 }
 

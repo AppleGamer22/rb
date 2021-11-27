@@ -2,14 +2,13 @@ package tasks
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
 
 	val "github.com/AppleGamer22/recursive-backup/internal/validationhelpers"
-	"github.com/go-ozzo/ozzo-validation/v4"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type SourceListerAPI interface {
@@ -68,32 +67,20 @@ func (s *sourceLister) Do() error {
 func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error {
 	switch {
 	case err != nil:
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
-		if d.IsDir() {
-			return fs.SkipDir
-		}
-		return err
+		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
+		// if d.IsDir() {
+		// 	return fs.SkipDir
+		// }
 	case d.IsDir():
-		_, err = s.DirsWriter.WriteString(fmt.Sprintf("%s\n", path))
-		if err != nil {
-			return err
-		}
+		_, _ = s.DirsWriter.WriteString(fmt.Sprintf("%s\n", path))
 	case dirEntryError(d) != nil:
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, dirEntryError(d)))
-		if err != nil {
-			return err
-		}
+		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, dirEntryError(d)))
+		return fs.SkipDir
 	case isRegular(d):
-		_, err = s.FilesWriter.WriteString(fmt.Sprintf("%s\n", path))
-		if err != nil {
-			return err
-		}
+		_, _ = s.FilesWriter.WriteString(fmt.Sprintf("%s\n", path))
 	default:
-		err = errors.New("unexpected_element")
-		_, err = s.ErrorsWriter.WriteString(fmt.Sprintf("path: %s, type: %v error_msg: %v\n", path, d.Type(), err))
-		if err != nil {
-			return err
-		}
+		msg := "unexpected_element"
+		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("path: %s, type: %v error_msg: %s\n", path, d.Type(), msg))
 	}
 	return nil
 }

@@ -87,6 +87,7 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 
 func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.BackupFileResponse) {
 	scanner := bufio.NewScanner(filesList)
+	var fileID uint = 0
 	for scanner.Scan() {
 		srcFullPath := scanner.Text()
 		filePath := strings.TrimPrefix(srcFullPath, m.SourceRootDir)
@@ -96,8 +97,10 @@ func (m *service) RequestFilesCopy(filesList io.Reader, responseChan chan tasks.
 			SourcePath:          srcFullPath,
 			TargetPath:          targetFullPath,
 			ResponseChannel:     responseChan,
+			ID:                  fileID,
 		}
 		copyFileTask.Do()
+		fileID++
 	}
 }
 

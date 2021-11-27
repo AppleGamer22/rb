@@ -1,17 +1,8 @@
-# done -> CompletionStatus
-# json -> target
-# target usb, source smb
-
 VERSION:=1.0.0
-BIN:=./bin
-BASE:=rb_$(VERSION)
-LINUX=$(BASE)_linux_amd64
-DARWIN=$(BASE)_darwin_amd64
-WINDOWS=$(BASE)_windows_amd64.exe
 
 all: test build
 
-build: $(LINUX) $(DARWIN) $(WINDOWS)
+build: linux mac windows
 
 test:
 	@echo "Testing $(VERSION) internal"
@@ -19,19 +10,17 @@ test:
 	@echo "Testing $(VERSION) cmd"
 	go test -v -cover ./cmd/*
 
-linux: $(LINUX)
+linux:
+	env GOOS=linux GOARCH=amd64 go build -v -o ./bin/rb_$(VERSION)_linux_amd64
+	env GOOS=linux GOARCH=arm64 go build -v -o ./bin/rb_$(VERSION)_linux_arm64
+	env GOOS=linux GOARCH=riscv64 go build -v -o ./bin/rb_$(VERSION)_linux_riscv64
 
-darwin: $(DARWIN)
+mac:
+	env GOOS=darwin GOARCH=amd64 go build -v -o ./bin/rb_$(VERSION)_mac_amd64
+	env GOOS=darwin GOARCH=arm64 go build -v -o ./bin/rb_$(VERSION)_mac_arm64
 
-windows: $(WINDOWS)
+windows:
+	env GOOS=windows GOARCH=amd64 go build -v -o ./bin/rb_$(VERSION)_windows_amd64.exe
+	env GOOS=windows GOARCH=arm64 go build -v -o ./bin/rb_$(VERSION)_windows_arm64.exe
 
-$(LINUX):
-	env GOOS=linux GOARCH=amd64 go build -v -o $(BIN)/$(LINUX)
-
-$(DARWIN):
-	env GOOS=darwin GOARCH=amd64 go build -v -o $(BIN)/$(DARWIN)
-
-$(WINDOWS):
-	env GOOS=windows GOARCH=amd64 go build  -v -o $(BIN)/$(WINDOWS)
-
-.PHONY: build test
+.PHONY: all build test linux mac windows
