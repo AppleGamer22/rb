@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/workers"
 
@@ -366,7 +365,7 @@ func TestFilesCopySuccess(t *testing.T) {
 			api.WaitForAllResponses()
 			close(tc.responseChan)
 			// then
-			time.Sleep(time.Millisecond * 500)
+			// time.Sleep(time.Millisecond * 500)
 			logString := strings.TrimSuffix(logWriter.String(), "\n")
 			logSlices := strings.Split(logString, "\n")
 			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
