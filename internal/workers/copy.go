@@ -4,11 +4,11 @@ import (
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 )
 
-type FileBackupWorker interface {
+type Copy interface {
 	Handle()
 }
 
-type fileBackupWorker struct {
+type copyWorker struct {
 	ID             uint
 	Pipeline       chan tasks.GeneralRequest
 	SourceRootPath string
@@ -18,8 +18,8 @@ type fileBackupWorker struct {
 
 type UpdateOnQuitFunc func()
 
-func NewFileBackupWorker(id uint, srcRootPath, targetRootPath string, p chan tasks.GeneralRequest, quitFunc UpdateOnQuitFunc) {
-	worker := &fileBackupWorker{
+func NewCopyWorker(id uint, srcRootPath, targetRootPath string, p chan tasks.GeneralRequest, quitFunc UpdateOnQuitFunc) {
+	worker := &copyWorker{
 		ID:             id,
 		Pipeline:       p,
 		SourceRootPath: srcRootPath,
@@ -29,7 +29,7 @@ func NewFileBackupWorker(id uint, srcRootPath, targetRootPath string, p chan tas
 	go worker.Handle()
 }
 
-func (f *fileBackupWorker) Handle() {
+func (f *copyWorker) Handle() {
 	for task := range f.Pipeline {
 		switch assertedRequest := task.(type) {
 		case tasks.BackupFileRequest:

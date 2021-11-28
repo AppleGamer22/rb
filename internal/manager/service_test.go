@@ -351,16 +351,19 @@ func TestFilesCopySuccess(t *testing.T) {
 			}
 			for i := 0; i < cap(tc.generalRequestChan); i++ {
 				wgRequest.Add(1)
-				workers.NewFileBackupWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan, updateOnQuit)
+				workers.NewCopyWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan, updateOnQuit)
 			}
 			var logWriter strings.Builder
 			go api.HandleFilesCopyResponse(&logWriter, tc.responseChan)
 
 			// when
 			api.RequestFilesCopy(srcFileReader, tc.batchID, tc.generalRequestChan, tc.responseChan)
+			for i := 0; i < cap(tc.generalRequestChan); i++ {
+				tc.generalRequestChan <- tasks.QuitRequest{}
+			}
 			wgRequest.Wait()
-			api.WaitForAllResponses()
 			close(tc.generalRequestChan)
+			api.WaitForAllResponses()
 			close(tc.responseChan)
 			// then
 			time.Sleep(time.Millisecond * 500)
