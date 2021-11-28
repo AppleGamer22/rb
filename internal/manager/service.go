@@ -115,9 +115,9 @@ func (m *service) HandleFilesCopyResponse(logWriter io.Writer, responseChan chan
 	headerLine := "status,duration [milli-sec],target,source,error_message\n"
 	_, _ = buf.WriteString(headerLine)
 	for resp := range responseChan {
-		wgRequestResponseCorelator.Done()
 		_, _ = buf.WriteString(fileCopyResponseString(resp))
 		_ = buf.Flush()
+		wgRequestResponseCorelator.Done()
 	}
 }
 

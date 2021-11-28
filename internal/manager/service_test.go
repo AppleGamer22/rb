@@ -368,7 +368,7 @@ func TestFilesCopySuccess(t *testing.T) {
 			// time.Sleep(time.Millisecond * 500)
 			logString := strings.TrimSuffix(logWriter.String(), "\n")
 			logSlices := strings.Split(logString, "\n")
-			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
+			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices), logSlices)
 			assert.Equal(t, "status,duration [milli-sec],target,source,error_message", logSlices[0])
 			partialLogSlices := logSlices[1:]
 			sort.Strings(partialLogSlices)
