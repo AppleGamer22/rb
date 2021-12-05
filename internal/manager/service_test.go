@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,8 +9,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
-	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 	"github.com/stretchr/testify/assert"
@@ -343,22 +344,36 @@ func TestFilesCopySuccess(t *testing.T) {
 			})
 			expectedLogs := expectedLogsFunc(t, testDirPath, tc.filesSubPaths, tc.missingFilesSubPaths)
 			sort.Strings(expectedLogs)
+
+			var wgRequest sync.WaitGroup
+			updateOnQuit := func() {
+				wgRequest.Done()
+			}
+
 			for i := 0; i < cap(tc.generalRequestChan); i++ {
-				workers.NewFileBackupWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan)
+				wgRequest.Add(1)
+				workers.NewCopyWorker(uint(i), srcTestPath, targetTestPath, tc.generalRequestChan, updateOnQuit)
 			}
 			var logWriter strings.Builder
 			go api.HandleFilesCopyResponse(&logWriter, tc.responseChan)
 
 			// when
 			api.RequestFilesCopy(srcFileReader, tc.batchID, tc.generalRequestChan, tc.responseChan)
-
+			for i := 0; i < cap(tc.generalRequestChan); i++ {
+				tc.generalRequestChan <- tasks.QuitRequest{}
+			}
+			wgRequest.Wait()
+			close(tc.generalRequestChan)
+			api.WaitForAllResponses()
+			close(tc.responseChan)
 			// then
-			time.Sleep(time.Millisecond * 500)
+			// time.Sleep(time.Millisecond * 500)
 			logString := strings.TrimSuffix(logWriter.String(), "\n")
 			logSlices := strings.Split(logString, "\n")
-			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices))
+			assert.Equal(t, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths)+1, len(logSlices), logSlices)
 			assert.Equal(t, "status,duration [milli-sec],target,source,error_message", logSlices[0])
 			partialLogSlices := logSlices[1:]
+			require.Len(t, partialLogSlices, len(tc.filesSubPaths)+len(tc.missingFilesSubPaths))
 			sort.Strings(partialLogSlices)
 			for i := 0; i < len(expectedLogs); i++ {
 				expectedLine := expectedLogs[i]
@@ -374,9 +389,12 @@ func TestFilesCopySuccess(t *testing.T) {
 				actualDuration, err := strconv.Atoi(actualLineItems[1])
 				require.NoError(t, err, "unexpected duration")
 				assert.GreaterOrEqual(t, actualDuration, 0, "unexpected duration")
-				assert.Equal(t, expectedLineItems[2], actualLineItems[2], "unexpected target value")
-				assert.Equal(t, expectedLineItems[3], actualLineItems[3], "unexpected source value")
-				assert.Equal(t, expectedLineItems[4], actualLineItems[4], "unexpected message")
+
+				expectedLogsMessage := fmt.Sprintf("expected logs: %v", expectedLogs)
+				actualLogsMessage := fmt.Sprintf("actual lines: %v", partialLogSlices)
+				assert.Equal(t, expectedLineItems[2], actualLineItems[2], "unexpected target value", expectedLogsMessage, actualLogsMessage)
+				assert.Equal(t, expectedLineItems[3], actualLineItems[3], "unexpected source value", expectedLogsMessage, actualLogsMessage)
+				assert.Equal(t, expectedLineItems[4], actualLineItems[4], "unexpected message", expectedLogsMessage, actualLogsMessage)
 			}
 			//assert.Equal(t, expectedLogs, logSlices[1:])
 

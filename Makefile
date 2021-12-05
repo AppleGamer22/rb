@@ -6,9 +6,9 @@ build: linux mac windows
 
 test:
 	@echo "Testing $(VERSION) internal"
-	go test -v -cover ./internal/*
+	go clean -testcache && go test -v -cover ./internal/*
 	@echo "Testing $(VERSION) cmd"
-	go test -v -cover ./cmd/*
+	go clean -testcache && go test -v -cover ./cmd/*
 
 linux:
 	env GOOS=linux GOARCH=amd64 go build -v -o ./bin/rb_$(VERSION)_linux_amd64

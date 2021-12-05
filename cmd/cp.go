@@ -3,14 +3,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/AppleGamer22/recursive-backup/internal/workers"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
+	"sync"
 	"time"
+
+	"github.com/AppleGamer22/recursive-backup/internal/workers"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
@@ -19,9 +20,16 @@ import (
 
 var batchesDirPath string
 var copyQueueLen uint
+var generalRequestChannel chan tasks.GeneralRequest
 var responseChan chan tasks.BackupFileResponse
-var requestChannel chan tasks.GeneralRequest
+var wgCopyWorkerQuitConfirmation sync.WaitGroup
 var digitsRE = regexp.MustCompile("[[:digit:]]+")
+var in manager.ServiceInitInput
+var service manager.API
+
+func UpdateOnQuit() {
+	wgCopyWorkerQuitConfirmation.Done()
+}
 
 func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
@@ -40,7 +48,6 @@ var cpCmd = &cobra.Command{
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]
-
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -52,54 +59,45 @@ var cpCmd = &cobra.Command{
 		}
 		batchesToDoDirPath = filepath.Join(batchesDirPath, sliceBatchesToDoDirName)
 		batchesDoneDirPath = filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
+		in = manager.ServiceInitInput{
+			SourceRootDir: cfg.Src,
+			TargetRootDir: cfg.Target,
+		}
+		service = manager.NewService(in)
+
 		return nil
 	},
 	RunE: cpRunCommand,
-	PostRunE: func(cmd *cobra.Command, args []string) error {
-		if runtime.GOOS != "windows" {
-			return nil
-		}
-		doneDirWalkFunc := func(path string, d fs.DirEntry, err error) error {
-			toBeRemovedPath := filepath.Join(batchesToDoDirPath, d.Name())
-			if err := os.Remove(toBeRemovedPath); err != nil {
-				writeOpLog(fmt.Sprintf("%s (%+v)", toBeRemovedPath, err))
-			}
-			return nil
-		}
-
-		_ = filepath.WalkDir(batchesDoneDirPath, doneDirWalkFunc)
-
-		return nil
-	},
 }
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
 	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
 
-	requestChannel = make(chan tasks.GeneralRequest, copyQueueLen)
-	defer close(requestChannel)
 	responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
-	defer close(responseChan)
+	defer func() {
+		service.WaitForAllResponses()
+		close(responseChan)
+	}()
+	generalRequestChannel = make(chan tasks.GeneralRequest, copyQueueLen)
+	defer func() {
+		wgCopyWorkerQuitConfirmation.Wait()
+		close(generalRequestChannel)
+	}()
 	for i := 1; i <= int(copyQueueLen); i++ {
-		workers.NewFileBackupWorker(uint(i), cfg.Src, cfg.Target, requestChannel)
+		wgCopyWorkerQuitConfirmation.Add(1)
+		workers.NewCopyWorker(uint(i), cfg.Src, cfg.Target, generalRequestChannel, UpdateOnQuit)
 	}
 
 	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
 	_ = writeOpLog("cp finished for all batches")
 
 	for i := 0; i < int(copyQueueLen); i++ {
-		requestChannel <- tasks.QuitRequest{}
+		generalRequestChannel <- tasks.QuitRequest{}
 	}
-	time.Sleep(time.Second)
 	return err
 }
 
 func walkDirFunc(path string, d fs.DirEntry, err error) error {
-	in := manager.ServiceInitInput{
-		SourceRootDir: cfg.Src,
-		TargetRootDir: cfg.Target,
-	}
-	service := manager.NewService(in)
 	switch {
 	case err != nil:
 		_ = writeOpLog(fmt.Sprintf("error with dir entry. path: %s. error: %s", path, err.Error()))
@@ -134,7 +132,7 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 		fmt.Println(copyLogFilePath)
 
 		go service.HandleFilesCopyResponse(copyLogFile, responseChan)
-		service.RequestFilesCopy(file, uint(batchID), requestChannel, responseChan)
+		service.RequestFilesCopy(file, uint(batchID), generalRequestChannel, responseChan)
 		_ = file.Close()
 		donePath := filepath.Join(batchesDoneDirPath, batchFileBasePath)
 
