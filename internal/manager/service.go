@@ -18,6 +18,7 @@ import (
 
 type API interface {
 	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error
+	ListSourcesReferenceTime(dirsWriter, filesWriter, errorsWriter io.Writer) error
 	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error)
 	RequestFilesCopy(filesList io.Reader, batchID uint, requestChan chan tasks.GeneralRequest, responseChan chan tasks.BackupFileResponse)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
@@ -25,13 +26,15 @@ type API interface {
 }
 
 type service struct {
-	SourceRootDir string
-	TargetRootDir string
+	SourceRootDir         string
+	TargetRootDir         string
+	RecoveryReferenceTime time.Time
 }
 
 type ServiceInitInput struct {
-	SourceRootDir string
-	TargetRootDir string
+	SourceRootDir         string
+	TargetRootDir         string
+	RecoveryReferenceTime time.Time
 }
 
 var wgRequestResponseCorelator sync.WaitGroup
@@ -63,7 +66,24 @@ func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) e
 		return err
 	}
 
-	return sourceLister.Do()
+	return sourceLister.Do(false)
+}
+
+func (m *service) ListSourcesReferenceTime(dirsWriter, filesWriter, errorsWriter io.Writer) error {
+	newSourceListerInput := &tasks.NewSrcListerInput{
+		SrcRootDir:            m.SourceRootDir,
+		RecoveryReferenceTime: m.RecoveryReferenceTime,
+		DirsWriter:            dirsWriter,
+		FilesWriter:           filesWriter,
+		ErrorsWriter:          errorsWriter,
+	}
+
+	sourceLister, err := tasks.NewSourceLister(newSourceListerInput)
+	if err != nil {
+		return err
+	}
+
+	return sourceLister.Do(true)
 }
 
 func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error) {
