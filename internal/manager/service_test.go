@@ -27,9 +27,9 @@ func TestNewManager(t *testing.T) {
 	t.Log("target root dir: ", targetRootDir)
 
 	type testCase struct {
-		title          string
-		input          ServiceInitInput
-		expectedErrStr string
+		title string
+		input ServiceInitInput
+		// expectedErrStr string
 	}
 	testCases := []testCase{
 		{
@@ -201,7 +201,7 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 			expectedDirPathsFunc: func(targetRootDir string) io.Reader {
 				buf := strings.Builder{}
 				buf.WriteString(fmt.Sprintf("%s\n", filepath.Join(targetRootDir, "one")))
-				buf.WriteString(fmt.Sprintf("%s", filepath.Join(targetRootDir, "two", "three")))
+				buf.WriteString(filepath.Join(targetRootDir, "two", "three"))
 				return strings.NewReader(buf.String())
 			},
 			expectedErrorsLogFunc: func(testDirPath string) string {
@@ -223,7 +223,7 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 			})
 
 			// when
-			createdDirsReader, err := api.CreateTargetDirSkeleton(dirsReader, errorsWriter, "report")
+			createdDirsReader, err := api.CreateTargetDirSkeleton(dirsReader, errorsWriter, "block")
 
 			// then
 			if tc.isErrorExpected {
