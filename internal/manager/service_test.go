@@ -223,7 +223,7 @@ func TestCreateTargetDirSkeleton(t *testing.T) {
 			})
 
 			// when
-			createdDirsReader, err := api.CreateTargetDirSkeleton(dirsReader, errorsWriter)
+			createdDirsReader, err := api.CreateTargetDirSkeleton(dirsReader, errorsWriter, "report")
 
 			// then
 			if tc.isErrorExpected {
