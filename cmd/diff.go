@@ -2,11 +2,19 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
+	"path/filepath"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 var timeString string
+
+func init() {
+	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
+	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
+	rootCmd.AddCommand(diffCmd)
+}
 
 var diffCmd = &cobra.Command{
 	Use:   "diff",
@@ -30,15 +38,35 @@ var diffCmd = &cobra.Command{
 
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("numWorkers: %v\n", cfg.NumWorkers)
-		fmt.Printf("src: %v\n", cfg.Src)
-		fmt.Printf("target: %v\n", cfg.Target)
-	},
-}
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// list
+		listDirPath = filepath.Join(rootDirPath, listDirName)
+		if err := ltCmd.RunE(cmd, args); err != nil {
+			return err
+		}
 
-func init() {
-	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
-	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
-	rootCmd.AddCommand(diffCmd)
+		// skeleton
+		skeletonWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
+		dirsListFilePath = listDirsPath
+		if err := skeletonCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		// slice
+		filesListFilePath = listFilesPath
+		if err := sliceCmd.PreRunE(cmd, args); err != nil {
+			return err
+		}
+		if err := sliceCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		// cp
+		batchesDirPath = batchesSourceDirPath
+		if err := cpCmd.RunE(cmd, args); err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
