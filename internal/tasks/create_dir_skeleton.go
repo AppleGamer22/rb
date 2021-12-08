@@ -36,7 +36,7 @@ type backupDirSkeleton struct {
 func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 	var errs []error
 	dirs, err := b.extractLongPaths()
-	if err != nil {
+	if err != nil && b.OnMissingDir == "block" {
 		errs = append(errs, err)
 		return nil, errs
 	}
@@ -67,9 +67,8 @@ func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 
 func (b *backupDirSkeleton) extractLongPaths() (shortList []string, err error) {
 	dirs, err := b.getSortedSrcDirPaths()
-	var stopped bool
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 
 	// var shortList []string
@@ -82,22 +81,14 @@ func (b *backupDirSkeleton) extractLongPaths() (shortList []string, err error) {
 	}
 
 	var missed []string
-	stopped = false
 	for _, dirPath := range dirs {
 		fileInfo, err := os.Stat(dirPath)
 		if err != nil || !fileInfo.IsDir() {
 			switch b.OnMissingDir {
 			case "report":
-				missed = append(missed, dirPath)
 			case "block":
 				missed = append(missed, dirPath)
-				stopped = true
-			case "none":
-				stopped = false
 			}
-		}
-		if stopped {
-			break
 		}
 	}
 	if len(missed) > 0 {

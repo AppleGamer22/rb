@@ -90,22 +90,21 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
 	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir, onMissingDir)
 	createdDirsReader, errs := task.Do()
-	for _, err := range errs {
-		switch err.(type) {
-		case rberrors.DirSkeletonError:
-			for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
-				msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
-				if onMissingDir == "report" || onMissingDir == "block" {
+	if onMissingDir == "report" || onMissingDir == "block" {
+		for _, err := range errs {
+			switch err.(type) {
+			case rberrors.DirSkeletonError:
+				for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
+					msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
 					fmt.Print(msg)
+					_, _ = bufferedErrorsWriter.WriteString(msg)
+
 				}
+			default:
+				msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
+				fmt.Print(msg)
 				_, _ = bufferedErrorsWriter.WriteString(msg)
 			}
-		default:
-			msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
-			if onMissingDir == "report" || onMissingDir == "block" {
-				fmt.Print(msg)
-			}
-			_, _ = bufferedErrorsWriter.WriteString(msg)
 		}
 	}
 	_ = bufferedErrorsWriter.Flush()
