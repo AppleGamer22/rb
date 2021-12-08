@@ -95,14 +95,14 @@ func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter 
 		case rberrors.DirSkeletonError:
 			for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
 				msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
-				if onMissingDir == "report" || onMissingDir == "stop" {
+				if onMissingDir == "report" || onMissingDir == "block" {
 					fmt.Print(msg)
 				}
 				_, _ = bufferedErrorsWriter.WriteString(msg)
 			}
 		default:
 			msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
-			if onMissingDir == "report" || onMissingDir == "stop" {
+			if onMissingDir == "report" || onMissingDir == "block" {
 				fmt.Print(msg)
 			}
 			_, _ = bufferedErrorsWriter.WriteString(msg)

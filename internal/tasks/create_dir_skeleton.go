@@ -89,7 +89,7 @@ func (b *backupDirSkeleton) extractLongPaths() (shortList []string, err error) {
 			switch b.OnMissingDir {
 			case "report":
 				missed = append(missed, dirPath)
-			case "stop":
+			case "block":
 				missed = append(missed, dirPath)
 				stopped = true
 			case "none":

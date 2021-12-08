@@ -5,7 +5,7 @@ import "fmt"
 const (
 	None   = "none"
 	Report = "report"
-	Stop   = "stop"
+	Block  = "block"
 )
 
 type DirSkeletonError struct {
