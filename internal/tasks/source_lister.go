@@ -60,7 +60,7 @@ func NewSourceLister(input *NewSrcListerInput) (SourceListerAPI, error) {
 
 func (s *sourceLister) Do() error {
 	if s.ReferenceTime != nil {
-		if err := filepath.WalkDir(s.SrcRootDir, s.walkDirFuncReferenceTime); err != nil {
+		if err := filepath.WalkDir(s.SrcRootDir, s.walkDirFuncWithReferenceTime); err != nil {
 			return err
 		}
 	} else {
@@ -96,7 +96,7 @@ func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error 
 	return nil
 }
 
-func (s *sourceLister) walkDirFuncReferenceTime(path string, d fs.DirEntry, err error) error {
+func (s *sourceLister) walkDirFuncWithReferenceTime(path string, d fs.DirEntry, err error) error {
 	if s.ReferenceTime == nil {
 		return errors.New("reference time cannot be nil")
 	}

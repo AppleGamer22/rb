@@ -15,12 +15,12 @@ import (
 
 var skeletonWorkDir string
 var dirsListFilePath string
-var onMissingDirectory string
+var validationMode string
 
 func init() {
 	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
 	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
-	skeletonCmd.Flags().StringVarP(&onMissingDirectory, "on-misssing-dir", "m", rberrors.Report, "what to do when encountering a mssing directory (none, report, block)")
+	skeletonCmd.Flags().StringVarP(&validationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
 	rootCmd.AddCommand(skeletonCmd)
 
 }
@@ -30,8 +30,8 @@ var skeletonCmd = &cobra.Command{
 	Short: "create target directory skeleton",
 	Long:  "create directory skeleton in target",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if onMissingDirectory != rberrors.None && onMissingDirectory != rberrors.Report && onMissingDirectory != rberrors.Block {
-			return fmt.Errorf("--on-missing-dir flag can be on of none, report or block, got %s", onMissingDirectory)
+		if validationMode != rberrors.None && validationMode != rberrors.Report && validationMode != rberrors.Block {
+			return fmt.Errorf("--on-missing-dir flag can be on of none, report or block, got %s", validationMode)
 		}
 
 		if len(args) != 2 {
@@ -75,7 +75,7 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 	}
 	service := manager.NewService(in)
 	var reader io.Reader
-	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile, onMissingDirectory); err != nil {
+	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile, validationMode); err != nil {
 		return err
 	}
 	if _, err = io.Copy(outDirsListFile, reader); err != nil {

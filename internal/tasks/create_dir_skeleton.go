@@ -17,11 +17,11 @@ type BackupDirSkeleton interface {
 	Do() (io.Reader, []error)
 }
 
-func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRootPath string, onMissingDir string) BackupDirSkeleton {
+func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRootPath string, validationMode string) BackupDirSkeleton {
 	return &backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: srcDirReader,
-		OnMissingDir:         onMissingDir,
+		ValidationMode:       validationMode,
 		TargetRootPath:       targetRootPath,
 	}
 }
@@ -29,14 +29,14 @@ func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRoot
 type backupDirSkeleton struct {
 	SrcRootPath          string
 	SrcDirectoriesReader io.Reader
-	OnMissingDir         string
+	ValidationMode       string
 	TargetRootPath       string
 }
 
 func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 	var errs []error
 	dirs, err := b.extractLongPaths()
-	if err != nil && b.OnMissingDir == "block" {
+	if err != nil && b.ValidationMode == "block" {
 		errs = append(errs, err)
 		return nil, errs
 	}
@@ -84,7 +84,7 @@ func (b *backupDirSkeleton) extractLongPaths() (shortList []string, err error) {
 	for _, dirPath := range dirs {
 		fileInfo, err := os.Stat(dirPath)
 		if err != nil || !fileInfo.IsDir() {
-			switch b.OnMissingDir {
+			switch b.ValidationMode {
 			case "report":
 			case "block":
 				missed = append(missed, dirPath)

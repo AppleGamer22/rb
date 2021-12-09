@@ -19,7 +19,7 @@ import (
 type API interface {
 	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer, referenceTime *time.Time) error
 	// ListSourcesReferenceTime(dirsWriter, filesWriter, errorsWriter io.Writer) error
-	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer, onMissingDir string) (io.Reader, error)
+	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer, validationMode string) (io.Reader, error)
 	RequestFilesCopy(filesList io.Reader, batchID uint, requestChan chan tasks.GeneralRequest, responseChan chan tasks.BackupFileResponse)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
 	WaitForAllResponses()
@@ -87,11 +87,11 @@ func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer, r
 // 	return sourceLister.Do(true)
 // }
 
-func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer, onMissingDir string) (io.Reader, error) {
+func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer, validationMode string) (io.Reader, error) {
 	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
-	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir, onMissingDir)
+	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir, validationMode)
 	createdDirsReader, errs := task.Do()
-	if onMissingDir == "report" || onMissingDir == "block" {
+	if validationMode == "report" || validationMode == "block" {
 		for _, err := range errs {
 			switch err.(type) {
 			case rberrors.DirSkeletonError:
