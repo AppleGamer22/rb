@@ -111,7 +111,7 @@ func TestListSources(t *testing.T) {
 			})
 
 			// when
-			err = api.ListSources(dirsWriter, filesWriter, errorsWriter)
+			err = api.ListSources(dirsWriter, filesWriter, errorsWriter, nil)
 
 			// then
 			assert.NoError(t, err)

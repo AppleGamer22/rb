@@ -186,7 +186,7 @@ func TestListSources(t *testing.T) {
 			errorLogsSlice := getExpectations(srcListerInput.SrcRootDir, getExpectedErrorLogs, tc.symLinks)
 
 			// when
-			testErr = lister.Do(false)
+			testErr = lister.Do()
 
 			// then
 			assert.NoError(t, testErr)

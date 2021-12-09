@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -13,23 +14,23 @@ import (
 )
 
 type SourceListerAPI interface {
-	Do(withReferenceTime bool) error
+	Do() error
 }
 
 type sourceLister struct {
-	SrcRootDir            string
-	RecoveryReferenceTime time.Time
-	DirsWriter            *bufio.Writer
-	FilesWriter           *bufio.Writer
-	ErrorsWriter          *bufio.Writer
+	SrcRootDir    string
+	ReferenceTime *time.Time
+	DirsWriter    *bufio.Writer
+	FilesWriter   *bufio.Writer
+	ErrorsWriter  *bufio.Writer
 }
 
 type NewSrcListerInput struct {
-	SrcRootDir            string
-	RecoveryReferenceTime time.Time
-	DirsWriter            io.Writer
-	FilesWriter           io.Writer
-	ErrorsWriter          io.Writer
+	SrcRootDir    string
+	ReferenceTime *time.Time
+	DirsWriter    io.Writer
+	FilesWriter   io.Writer
+	ErrorsWriter  io.Writer
 }
 
 func (i *NewSrcListerInput) Validate() error {
@@ -47,17 +48,18 @@ func NewSourceLister(input *NewSrcListerInput) (SourceListerAPI, error) {
 	}
 
 	srcLister := &sourceLister{
-		SrcRootDir:   input.SrcRootDir,
-		DirsWriter:   bufio.NewWriter(input.DirsWriter),
-		FilesWriter:  bufio.NewWriter(input.FilesWriter),
-		ErrorsWriter: bufio.NewWriter(input.ErrorsWriter),
+		SrcRootDir:    input.SrcRootDir,
+		DirsWriter:    bufio.NewWriter(input.DirsWriter),
+		FilesWriter:   bufio.NewWriter(input.FilesWriter),
+		ErrorsWriter:  bufio.NewWriter(input.ErrorsWriter),
+		ReferenceTime: input.ReferenceTime,
 	}
 
 	return srcLister, nil
 }
 
-func (s *sourceLister) Do(withReferenceTime bool) error {
-	if withReferenceTime {
+func (s *sourceLister) Do() error {
+	if s.ReferenceTime != nil {
 		if err := filepath.WalkDir(s.SrcRootDir, s.walkDirFuncReferenceTime); err != nil {
 			return err
 		}
@@ -95,18 +97,21 @@ func (s *sourceLister) walkDirFunc(path string, d fs.DirEntry, err error) error 
 }
 
 func (s *sourceLister) walkDirFuncReferenceTime(path string, d fs.DirEntry, err error) error {
+	if s.ReferenceTime == nil {
+		return errors.New("reference time cannot be nil")
+	}
 	switch {
 	case err != nil:
 		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, err))
 		// if d.IsDir() {
 		// 	return fs.SkipDir
 		// }
-	case d.IsDir() && isAfterReferenceTime(d, s.RecoveryReferenceTime):
+	case d.IsDir() && isAfterReferenceTime(d, *s.ReferenceTime):
 		_, _ = s.DirsWriter.WriteString(fmt.Sprintf("%s\n", path))
 	case dirEntryError(d) != nil:
 		_, _ = s.ErrorsWriter.WriteString(fmt.Sprintf("%s, %v\n", path, dirEntryError(d)))
 		return fs.SkipDir
-	case isRegular(d) && isAfterReferenceTime(d, s.RecoveryReferenceTime):
+	case isRegular(d) && isAfterReferenceTime(d, *s.ReferenceTime):
 		_, _ = s.FilesWriter.WriteString(fmt.Sprintf("%s\n", path))
 	default:
 		msg := "unexpected_element"

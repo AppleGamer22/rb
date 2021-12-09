@@ -1,15 +1,17 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	ltCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
+	ltCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
 	rootCmd.AddCommand(ltCmd)
 }
 
@@ -19,15 +21,21 @@ var ltCmd = &cobra.Command{
 	Long:  "list source recursively for recent modifications in directories and files",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("arguments mismatch, expecting 1 argument")
+			return errors.New("arguments mismatch, expecting 1 argument")
 		}
 		cfg.Src = args[0]
 
+		if timeString == "" {
+			return errors.New("time string cannot be empty")
+		}
 		assertedTime, err := parseTime(timeString)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		cfg.RecoveryReferenceTime = *assertedTime
+		if !assertedTime.Before(time.Now()) {
+			return errors.New("reference time flag value is in the future")
+		}
+		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
@@ -55,12 +63,11 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 	}()
 
 	in := manager.ServiceInitInput{
-		SourceRootDir:         cfg.Src,
-		RecoveryReferenceTime: cfg.RecoveryReferenceTime,
+		SourceRootDir: cfg.Src,
 	}
 
 	service := manager.NewService(in)
-	if err = service.ListSourcesReferenceTime(dirs, files, errs); err != nil {
+	if err = service.ListSources(dirs, files, errs, cfg.ReferenceTime); err != nil {
 		return err
 	}
 

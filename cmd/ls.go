@@ -71,7 +71,7 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		SourceRootDir: cfg.Src,
 	}
 	service := manager.NewService(in)
-	if err = service.ListSources(dirs, files, errs); err != nil {
+	if err = service.ListSources(dirs, files, errs, nil); err != nil {
 		return err
 	}
 

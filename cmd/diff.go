@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -12,7 +13,7 @@ var timeString string
 
 func init() {
 	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
-	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 2006-01-02T15:04:05")
+	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
 	rootCmd.AddCommand(diffCmd)
 }
 
@@ -22,19 +23,22 @@ var diffCmd = &cobra.Command{
 	Long:  "with differential backup only new or modified files and directories are being backed-up",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
-			return fmt.Errorf("arguments mismatch, expecting 2 arguments")
+			return errors.New("arguments mismatch, expecting 2 arguments")
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]
 
-		assertedTime, err := time.Parse(timeFormat, timeString)
+		if timeString == "" {
+			return errors.New("time string cannot be empty")
+		}
+		assertedTime, err := parseTime(timeString)
 		if err != nil {
-			return fmt.Errorf("failed to parse time flag value")
+			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
 		if !assertedTime.Before(time.Now()) {
-			return fmt.Errorf("reference time flag value is in the future")
+			return errors.New("reference time flag value is in the future")
 		}
-		cfg.RecoveryReferenceTime = assertedTime
+		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
