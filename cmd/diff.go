@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +11,7 @@ import (
 var timeString string
 
 func init() {
-	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "workers", "w", 2, "number of concurrent file-copy workers")
+	diffCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
 	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
 	rootCmd.AddCommand(diffCmd)
 }
@@ -35,13 +34,11 @@ var diffCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		if !assertedTime.Before(time.Now()) {
-			return errors.New("reference time flag value is in the future")
-		}
 		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
+	PreRunE: fullCmd.PreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// list
 		listDirPath = filepath.Join(rootDirPath, listDirName)
@@ -67,6 +64,9 @@ var diffCmd = &cobra.Command{
 
 		// cp
 		batchesDirPath = batchesSourceDirPath
+		if err := cpCmd.PreRunE(cmd, args); err != nil {
+			return err
+		}
 		if err := cpCmd.RunE(cmd, args); err != nil {
 			return err
 		}

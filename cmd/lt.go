@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/spf13/cobra"
@@ -32,14 +31,12 @@ var ltCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		if !assertedTime.Before(time.Now()) {
-			return errors.New("reference time flag value is in the future")
-		}
 		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
-	RunE: ltRunCmd,
+	PreRunE: lsCmd.PreRunE,
+	RunE:    ltRunCmd,
 }
 
 func ltRunCmd(cmd *cobra.Command, args []string) error {
