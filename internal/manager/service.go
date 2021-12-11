@@ -70,23 +70,6 @@ func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer, r
 	return sourceLister.Do()
 }
 
-// func (m *service) ListSourcesReferenceTime(dirsWriter, filesWriter, errorsWriter io.Writer) error {
-// 	newSourceListerInput := &tasks.NewSrcListerInput{
-// 		SrcRootDir:            m.SourceRootDir,
-// 		RecoveryReferenceTime: m.RecoveryReferenceTime,
-// 		DirsWriter:            dirsWriter,
-// 		FilesWriter:           filesWriter,
-// 		ErrorsWriter:          errorsWriter,
-// 	}
-
-// 	sourceLister, err := tasks.NewSourceLister(newSourceListerInput)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return sourceLister.Do(true)
-// }
-
 func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer, validationMode string) (io.Reader, error) {
 	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
 	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir, validationMode)
