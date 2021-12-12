@@ -34,7 +34,7 @@ func UpdateOnQuit() {
 func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
 	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
-	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 5, "copy queue length")
+	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
 	rootCmd.AddCommand(cpCmd)
 }
 

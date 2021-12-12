@@ -36,6 +36,7 @@ func TestBackupDirSkeleton_Do_missing_source_dir(t *testing.T) {
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: testDirReader,
 		TargetRootPath:       targetRootPath,
+		ValidationMode:       "block",
 	}
 
 	// when

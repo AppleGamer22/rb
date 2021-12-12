@@ -53,10 +53,6 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := os.Chdir(listDirPath); err != nil {
-		return err
-	}
-
 	dirs, files, errs, err := createFilesForList()
 	if err != nil {
 		return err
@@ -71,7 +67,7 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 		SourceRootDir: cfg.Src,
 	}
 	service := manager.NewService(in)
-	if err = service.ListSources(dirs, files, errs); err != nil {
+	if err = service.ListSources(dirs, files, errs, nil); err != nil {
 		return err
 	}
 
@@ -92,27 +88,28 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 func createFilesForList() (dirs, files, errs *os.File, err error) {
 	now := time.Now()
 	listDirsName := fmt.Sprintf(listedDirsFileNamePattern, now.Format(timeDateFormat))
-	dirs, err = os.Create(listDirsName)
+	listDirsPath = filepath.Join(listDirPath, listDirsName)
+	dirs, err = os.Create(listDirsPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	listDirsPath = filepath.Join(listDirPath, listDirsName)
 	fmt.Println(listDirsPath)
 
 	listFilesName := fmt.Sprintf(listedFilesFileNamePattern, now.Format(timeDateFormat))
-	files, err = os.Create(listFilesName)
+	listFilesPath = filepath.Join(listDirPath, listFilesName)
+	files, err = os.Create(listFilesPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	listFilesPath = filepath.Join(listDirPath, listFilesName)
 	fmt.Println(listFilesPath)
 
 	errorsFileName := fmt.Sprintf(listErrorsFileNamePattern, now.Format(timeDateFormat))
-	errs, err = os.Create(errorsFileName)
+	listErrorsPath := filepath.Join(listDirPath, errorsFileName)
+	errs, err = os.Create(listErrorsPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	fmt.Println(filepath.Join(listDirPath, errorsFileName))
+	fmt.Println(listErrorsPath)
 
 	return dirs, files, errs, nil
 }

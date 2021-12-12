@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -8,15 +9,18 @@ import (
 	"time"
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
+	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 	"github.com/spf13/cobra"
 )
 
 var skeletonWorkDir string
 var dirsListFilePath string
+var validationMode string
 
 func init() {
 	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
 	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
+	skeletonCmd.Flags().StringVarP(&validationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
 	rootCmd.AddCommand(skeletonCmd)
 
 }
@@ -26,8 +30,12 @@ var skeletonCmd = &cobra.Command{
 	Short: "create target directory skeleton",
 	Long:  "create directory skeleton in target",
 	Args: func(cmd *cobra.Command, args []string) error {
+		if validationMode != rberrors.None && validationMode != rberrors.Report && validationMode != rberrors.Block {
+			return fmt.Errorf("--on-missing-dir flag can be on of none, report or block, got %s", validationMode)
+		}
+
 		if len(args) != 2 {
-			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+			return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
 		cfg.Src = args[0]
 		cfg.Target = args[1]
@@ -67,7 +75,7 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 	}
 	service := manager.NewService(in)
 	var reader io.Reader
-	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile); err != nil {
+	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile, validationMode); err != nil {
 		return err
 	}
 	if _, err = io.Copy(outDirsListFile, reader); err != nil {

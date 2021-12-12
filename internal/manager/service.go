@@ -17,8 +17,9 @@ import (
 )
 
 type API interface {
-	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error
-	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error)
+	ListSources(dirsWriter, filesWriter, errorsWriter io.Writer, referenceTime *time.Time) error
+	// ListSourcesReferenceTime(dirsWriter, filesWriter, errorsWriter io.Writer) error
+	CreateTargetDirSkeleton(dirsReader io.Reader, errorsWriter io.Writer, validationMode string) (io.Reader, error)
 	RequestFilesCopy(filesList io.Reader, batchID uint, requestChan chan tasks.GeneralRequest, responseChan chan tasks.BackupFileResponse)
 	HandleFilesCopyResponse(logWriter io.Writer, responseChan chan tasks.BackupFileResponse)
 	WaitForAllResponses()
@@ -27,11 +28,13 @@ type API interface {
 type service struct {
 	SourceRootDir string
 	TargetRootDir string
+	// RecoveryReferenceTime time.Time
 }
 
 type ServiceInitInput struct {
 	SourceRootDir string
 	TargetRootDir string
+	// RecoveryReferenceTime time.Time
 }
 
 var wgRequestResponseCorelator sync.WaitGroup
@@ -50,12 +53,13 @@ func NewService(in ServiceInitInput) API {
 	}
 }
 
-func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) error {
+func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer, referenceTime *time.Time) error {
 	newSourceListerInput := &tasks.NewSrcListerInput{
-		SrcRootDir:   m.SourceRootDir,
-		DirsWriter:   dirsWriter,
-		FilesWriter:  filesWriter,
-		ErrorsWriter: errorsWriter,
+		SrcRootDir:    m.SourceRootDir,
+		DirsWriter:    dirsWriter,
+		FilesWriter:   filesWriter,
+		ErrorsWriter:  errorsWriter,
+		ReferenceTime: referenceTime,
 	}
 
 	sourceLister, err := tasks.NewSourceLister(newSourceListerInput)
@@ -66,20 +70,25 @@ func (m *service) ListSources(dirsWriter, filesWriter, errorsWriter io.Writer) e
 	return sourceLister.Do()
 }
 
-func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer) (io.Reader, error) {
+func (m *service) CreateTargetDirSkeleton(srcDirsReader io.Reader, errorsWriter io.Writer, validationMode string) (io.Reader, error) {
 	bufferedErrorsWriter := bufio.NewWriter(errorsWriter)
-	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir)
+	task := tasks.NewBackupDirSkeleton(srcDirsReader, m.SourceRootDir, m.TargetRootDir, validationMode)
 	createdDirsReader, errs := task.Do()
-	for _, err := range errs {
-		switch err.(type) {
-		case rberrors.DirSkeletonError:
-			for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
-				msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
+	if validationMode == "report" || validationMode == "block" {
+		for _, err := range errs {
+			switch err.(type) {
+			case rberrors.DirSkeletonError:
+				for _, missedPath := range err.(rberrors.DirSkeletonError).MissedDirPaths {
+					msg := fmt.Sprintf("%s missed-path: %s\n", "dir-skeleton-error", missedPath)
+					fmt.Print(msg)
+					_, _ = bufferedErrorsWriter.WriteString(msg)
+
+				}
+			default:
+				msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
+				fmt.Print(msg)
 				_, _ = bufferedErrorsWriter.WriteString(msg)
 			}
-		default:
-			msg := fmt.Sprintf("%s general-error: %s\n", "dir-skeleton-error", err.Error())
-			_, _ = bufferedErrorsWriter.WriteString(msg)
 		}
 	}
 	_ = bufferedErrorsWriter.Flush()

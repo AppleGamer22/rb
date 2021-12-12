@@ -2,18 +2,17 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"path/filepath"
-)
 
-var slicesWorkDirPath string
+	"github.com/spf13/cobra"
+)
 
 func init() {
 	// slice dependency
 	fullCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
 
 	// cp dependency
-	fullCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 5, "copy queue length")
+	fullCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
 
 	rootCmd.AddCommand(fullCmd)
 }
@@ -30,15 +29,7 @@ var fullCmd = &cobra.Command{
 		cfg.Target = args[1]
 		return nil
 	},
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		// init
-		if err := initCmd.RunE(cmd, args); err != nil {
-			return err
-		}
-
-		slicesWorkDirPath = filepath.Join(rootDirPath, "slice")
-		return nil
-	},
+	PreRunE: initCmd.RunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// list
 		listDirPath = filepath.Join(rootDirPath, listDirName)
@@ -64,6 +55,9 @@ var fullCmd = &cobra.Command{
 
 		// cp
 		batchesDirPath = batchesSourceDirPath
+		if err := cpCmd.PreRunE(cmd, args); err != nil {
+			return err
+		}
 		if err := cpCmd.RunE(cmd, args); err != nil {
 			return err
 		}

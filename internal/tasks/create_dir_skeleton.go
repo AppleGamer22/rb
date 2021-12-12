@@ -17,10 +17,11 @@ type BackupDirSkeleton interface {
 	Do() (io.Reader, []error)
 }
 
-func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRootPath string) BackupDirSkeleton {
+func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRootPath string, validationMode string) BackupDirSkeleton {
 	return &backupDirSkeleton{
 		SrcRootPath:          srcRootPath,
 		SrcDirectoriesReader: srcDirReader,
+		ValidationMode:       validationMode,
 		TargetRootPath:       targetRootPath,
 	}
 }
@@ -28,13 +29,14 @@ func NewBackupDirSkeleton(srcDirReader io.Reader, srcRootPath string, targetRoot
 type backupDirSkeleton struct {
 	SrcRootPath          string
 	SrcDirectoriesReader io.Reader
+	ValidationMode       string
 	TargetRootPath       string
 }
 
 func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 	var errs []error
 	dirs, err := b.extractLongPaths()
-	if err != nil {
+	if err != nil && b.ValidationMode == "block" {
 		errs = append(errs, err)
 		return nil, errs
 	}
@@ -63,13 +65,13 @@ func (b *backupDirSkeleton) Do() (io.Reader, []error) {
 	return strings.NewReader(out), errs
 }
 
-func (b *backupDirSkeleton) extractLongPaths() ([]string, error) {
+func (b *backupDirSkeleton) extractLongPaths() (shortList []string, err error) {
 	dirs, err := b.getSortedSrcDirPaths()
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 
-	var shortList []string
+	// var shortList []string
 	var lastDir string
 	for _, dir := range dirs {
 		if !strings.HasPrefix(lastDir, dir) {
@@ -82,7 +84,11 @@ func (b *backupDirSkeleton) extractLongPaths() ([]string, error) {
 	for _, dirPath := range dirs {
 		fileInfo, err := os.Stat(dirPath)
 		if err != nil || !fileInfo.IsDir() {
-			missed = append(missed, dirPath)
+			switch b.ValidationMode {
+			case "report":
+			case "block":
+				missed = append(missed, dirPath)
+			}
 		}
 	}
 	if len(missed) > 0 {

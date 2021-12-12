@@ -1,6 +1,7 @@
 {
 	"cSpell.words": [
-		"rber"
+		"rber",
+		"rberrors"
 	],
 	"files.associations": {
 		"*.cff": "yaml"

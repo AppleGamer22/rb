@@ -2,6 +2,12 @@ package rberrors
 
 import "fmt"
 
+const (
+	None   = "none"
+	Report = "report"
+	Block  = "block"
+)
+
 type DirSkeletonError struct {
 	MissedDirPaths []string
 }
