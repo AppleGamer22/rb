@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -114,6 +115,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 	}
 	inFilesListFile.Seek(0, io.SeekStart)
 	batchCount := fileCount/batchSize + 1
+	maxNumberOf0s := math.Ceil(math.Log10(float64(batchCount)))
 	for scanner.Scan() {
 		if lineCounter == 0 {
 			batchCounter++
@@ -121,7 +123,8 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				_ = writer.Flush()
 				_ = batchFile.Close()
 			}
-			zeroPadding := strings.Repeat("0", int(batchCount-batchCounter))
+			numberOf0s := math.Ceil(math.Log10(float64(batchCounter)))
+			zeroPadding := strings.Repeat("0", int(maxNumberOf0s-numberOf0s))
 			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, zeroPadding, batchCounter)
 			batchFilePath := filepath.Join(batchesToDoDirPath, batchFileName)
 			batchFile, err = os.Create(batchFilePath)
