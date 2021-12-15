@@ -27,7 +27,7 @@ const (
 	listErrorsFileNamePattern     = "list_errors_%s.log"
 	skeletonDirsFileNamePattern   = "skeleton_dirs_%s.log"
 	skeletonErrorsFileNamePattern = "skeleton_errors_%s.log"
-	sliceBatchFileNamePattern     = "batch_%d.log"
+	sliceBatchFileNamePattern     = "batch_%s%d.log"
 	sliceErrorsFileNamePattern    = "slice_errors_%s.log"
 	slicesWorkDirName             = "slice"
 	copyLogDirPattern             = "copy" + string(filepath.Separator) + "copy_logs_%s"

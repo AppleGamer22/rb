@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -106,6 +108,12 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 	var writer *bufio.Writer
 	var err error
 	scanner := bufio.NewScanner(inFilesListFile)
+	fileCount, err := countFiles(scanner)
+	if err != nil {
+		return err
+	}
+	inFilesListFile.Seek(0, io.SeekStart)
+	batchCount := fileCount/batchSize + 1
 	for scanner.Scan() {
 		if lineCounter == 0 {
 			batchCounter++
@@ -113,7 +121,8 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				_ = writer.Flush()
 				_ = batchFile.Close()
 			}
-			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, batchCounter)
+			zeroPadding := strings.Repeat("0", int(batchCount-batchCounter))
+			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, zeroPadding, batchCounter)
 			batchFilePath := filepath.Join(batchesToDoDirPath, batchFileName)
 			batchFile, err = os.Create(batchFilePath)
 			if err != nil {
@@ -156,4 +165,12 @@ func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 	}
 	fmt.Println(errorsFilePath)
 	return inFilesList, sliceErrorsFile, nil
+}
+
+func countFiles(scanner *bufio.Scanner) (uint, error) {
+	var output uint
+	for scanner.Scan() {
+		output++
+	}
+	return output, scanner.Err()
 }
