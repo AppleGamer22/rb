@@ -108,20 +108,20 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 	var batchFile *os.File
 	var writer *bufio.Writer
 	var err error
-	scanner := bufio.NewScanner(inFilesListFile)
-	fileCount, seekZeroFunc, err := countFiles(scanner)
+	fileCount, seekZeroFunc, err := countFiles(inFilesListFile)
 	if err != nil {
 		return err
 	}
-	if err = seekZeroFunc(inFilesListFile); err != nil {
+	if err = seekZeroFunc(); err != nil {
 		return err
 	}
 
 	var numDigits uint = 1
+	batchCount := math.Ceil(float64(fileCount) / float64(batchSize))
 	if fileCount >= 1 {
-		numDigits = uint(math.Ceil(math.Log10(float64(fileCount) / float64(batchSize))))
+		numDigits = uint(math.Ceil(math.Log10(batchCount)))
 	}
-	fmt.Println("Number of batches:", fileCount/batchSize)
+	scanner := bufio.NewScanner(inFilesListFile)
 	for scanner.Scan() {
 		if lineCounter == 0 {
 			batchCounter++
@@ -136,6 +136,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 			batchFile, err = os.Create(batchFilePath)
 			if err != nil {
 				_, _ = fmt.Fprintf(errorsFile, "failed to create batch file. batch_number: %d\n", batchCounter)
+				fmt.Println("failed to create batch file. batch_number:", batchCounter)
 				lineCounter = (lineCounter + 1) % batchSize
 				continue
 			}
@@ -176,14 +177,15 @@ func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 	return inFilesList, sliceErrorsFile, nil
 }
 
-func countFiles(scanner *bufio.Scanner) (uint, func(*os.File) error, error) {
+func countFiles(file *os.File) (uint, func() error, error) {
 	var output uint
-	seekZeroFunc := func(file *os.File) error {
+	seekZeroFunc := func() error {
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
 			return fmt.Errorf("failed to seek zero %s after counting its lines: %w", file.Name(), err)
 		}
 		return nil
 	}
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		output++
 	}
