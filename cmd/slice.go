@@ -4,8 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -105,6 +108,19 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 	var batchFile *os.File
 	var writer *bufio.Writer
 	var err error
+	fileCount, seekZeroFunc, err := countFiles(inFilesListFile)
+	if err != nil {
+		return err
+	}
+	if err = seekZeroFunc(); err != nil {
+		return err
+	}
+
+	var numDigits uint = 1
+	batchCount := math.Ceil(float64(fileCount) / float64(batchSize))
+	if fileCount >= 1 {
+		numDigits = uint(math.Ceil(math.Log10(batchCount)))
+	}
 	scanner := bufio.NewScanner(inFilesListFile)
 	for scanner.Scan() {
 		if lineCounter == 0 {
@@ -113,11 +129,14 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 				_ = writer.Flush()
 				_ = batchFile.Close()
 			}
-			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, batchCounter)
+			numBatchDigits := uint(math.Ceil(math.Log10(float64(batchCounter))))
+			zeroPadding := strings.Repeat("0", int(numDigits-numBatchDigits))
+			batchFileName := fmt.Sprintf(sliceBatchFileNamePattern, zeroPadding, batchCounter)
 			batchFilePath := filepath.Join(batchesToDoDirPath, batchFileName)
 			batchFile, err = os.Create(batchFilePath)
 			if err != nil {
 				_, _ = fmt.Fprintf(errorsFile, "failed to create batch file. batch_number: %d\n", batchCounter)
+				fmt.Println("failed to create batch file. batch_number:", batchCounter)
 				lineCounter = (lineCounter + 1) % batchSize
 				continue
 			}
@@ -156,4 +175,19 @@ func setupForSlice() (inFilesList, sliceErrorsFile *os.File, err error) {
 	}
 	fmt.Println(errorsFilePath)
 	return inFilesList, sliceErrorsFile, nil
+}
+
+func countFiles(file *os.File) (uint, func() error, error) {
+	var output uint
+	seekZeroFunc := func() error {
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return fmt.Errorf("failed to seek zero %s after counting its lines: %w", file.Name(), err)
+		}
+		return nil
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		output++
+	}
+	return output, seekZeroFunc, scanner.Err()
 }
