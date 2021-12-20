@@ -46,7 +46,7 @@ var cpCmd = &cobra.Command{
 		if len(args) != 2 {
 			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
-		cfg.Src = args[0]
+		cfg.Source = args[0]
 		cfg.Target = args[1]
 		return nil
 	},
@@ -60,7 +60,7 @@ var cpCmd = &cobra.Command{
 		batchesToDoDirPath = filepath.Join(batchesDirPath, sliceBatchesToDoDirName)
 		batchesDoneDirPath = filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
 		in = manager.ServiceInitInput{
-			SourceRootDir: cfg.Src,
+			SourceRootDir: cfg.Source,
 			TargetRootDir: cfg.Target,
 		}
 		service = manager.NewService(in)
@@ -85,7 +85,7 @@ func cpRunCommand(_ *cobra.Command, _ []string) error {
 	}()
 	for i := 1; i <= int(copyQueueLen); i++ {
 		wgCopyWorkerQuitConfirmation.Add(1)
-		workers.NewCopyWorker(uint(i), cfg.Src, cfg.Target, generalRequestChannel, UpdateOnQuit)
+		workers.NewCopyWorker(uint(i), cfg.Source, cfg.Target, generalRequestChannel, UpdateOnQuit)
 	}
 
 	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)

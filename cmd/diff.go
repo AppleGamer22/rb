@@ -24,7 +24,7 @@ var diffCmd = &cobra.Command{
 		if len(args) != 2 {
 			return errors.New("arguments mismatch, expecting 2 arguments")
 		}
-		cfg.Src = args[0]
+		cfg.Source = args[0]
 		cfg.Target = args[1]
 
 		if timeString == "" {

@@ -37,7 +37,7 @@ var skeletonCmd = &cobra.Command{
 		if len(args) != 2 {
 			return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
-		cfg.Src = args[0]
+		cfg.Source = args[0]
 		cfg.Target = args[1]
 
 		return nil
@@ -70,7 +70,7 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 	}()
 
 	in := manager.ServiceInitInput{
-		SourceRootDir: cfg.Src,
+		SourceRootDir: cfg.Source,
 		TargetRootDir: cfg.Target,
 	}
 	service := manager.NewService(in)

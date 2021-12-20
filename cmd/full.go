@@ -25,7 +25,7 @@ var fullCmd = &cobra.Command{
 		if len(args) != 2 {
 			return fmt.Errorf("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
-		cfg.Src = args[0]
+		cfg.Source = args[0]
 		cfg.Target = args[1]
 		return nil
 	},
