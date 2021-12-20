@@ -8,10 +8,15 @@ import (
 const timeFormat = "2006-01-02T15:04:05"
 
 type rootConfig struct {
-	NumWorkers    uint
-	Src           string
-	Target        string
-	ReferenceTime *time.Time
+	NumWorkers        uint
+	BatchSize         uint
+	DirsListPath      string
+	BatchesDirPath    string
+	FilesListFilePath string
+	Src               string
+	Target            string
+	ProjectDir        string
+	ReferenceTime     *time.Time
 }
 
 var cfg rootConfig
