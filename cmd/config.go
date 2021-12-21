@@ -10,15 +10,15 @@ import (
 const timeFormat = "2006-01-02T15:04:05"
 
 type rootConfig struct {
-	NumWorkers     uint       `yaml:"num_workers"`
-	BatchSize      uint       `yaml:"batch_size"`
-	DirsListPath   string     `yaml:"dir_list_path"`
-	BatchesDirPath string     `yaml:"batches_dir_path"`
-	FilesListPath  string     `yaml:"file_list_path"`
-	Source         string     `yaml:"source"`
-	Target         string     `yaml:"target"`
-	ProjectDir     string     `yaml:"project_dir"`
-	ReferenceTime  *time.Time `yaml:"reference_time"`
+	NumWorkers     uint       `ini:"num_workers"`
+	BatchSize      uint       `ini:"batch_size"`
+	DirsListPath   string     `ini:"dir_list_path"`
+	BatchesDirPath string     `ini:"batches_dir_path"`
+	FilesListPath  string     `ini:"file_list_path"`
+	Source         string     `ini:"source"`
+	Target         string     `ini:"target"`
+	ProjectDir     string     `ini:"project_dir"`
+	ReferenceTime  *time.Time `ini:"reference_time"`
 }
 
 var cfg rootConfig
@@ -36,7 +36,7 @@ func parseTime(timeString string) (*time.Time, error) {
 
 func readConfigFile() error {
 	viper.SetConfigName("rb")
-	viper.SetConfigType("yaml")
+	viper.SetConfigType("ini")
 	viper.AddConfigPath(".")
 	if err := viper.ReadInConfig(); err != nil {
 		return err
