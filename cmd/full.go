@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -14,6 +15,8 @@ func init() {
 	// cp dependency
 	fullCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
 
+	viper.BindPFlag("batch_size", fullCmd.Flags().Lookup("batch-size"))
+	viper.BindPFlag("num_workers", fullCmd.Flags().Lookup("copy-queue-len"))
 	rootCmd.AddCommand(fullCmd)
 }
 

@@ -7,10 +7,12 @@ import (
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
 	ltCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
+	viper.BindPFlag("reference_time", ltCmd.Flags().Lookup("time"))
 	rootCmd.AddCommand(ltCmd)
 }
 

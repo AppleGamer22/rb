@@ -16,6 +16,7 @@ import (
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/AppleGamer22/recursive-backup/internal/tasks"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var batchesDirPath string
@@ -35,6 +36,10 @@ func init() {
 	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
 	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
 	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
+
+	viper.BindPFlag("project_dir", cpCmd.Flags().Lookup("project"))
+	viper.BindPFlag("batches_dir_path", cpCmd.Flags().Lookup("batches-dir-path"))
+	viper.BindPFlag("num_workers", cpCmd.Flags().Lookup("copy-queue-len"))
 	rootCmd.AddCommand(cpCmd)
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var skeletonWorkDir string
@@ -21,6 +22,10 @@ func init() {
 	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
 	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
 	skeletonCmd.Flags().StringVarP(&validationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
+
+	viper.BindPFlag("project_dir", skeletonCmd.Flags().Lookup("project"))
+	viper.BindPFlag("dir_list_path", skeletonCmd.Flags().Lookup("dirs-list-file-path"))
+	viper.BindPFlag("dir_validation_mode", skeletonCmd.Flags().Lookup("dir-validation-mode"))
 	rootCmd.AddCommand(skeletonCmd)
 
 }

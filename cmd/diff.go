@@ -6,13 +6,19 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var timeString string
 
 func init() {
 	diffCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
+	diffCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
 	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
+
+	viper.BindPFlag("num_workers", diffCmd.Flags().Lookup("copy-queue-len"))
+	viper.BindPFlag("batch_size", diffCmd.Flags().Lookup("batch-size"))
+	viper.BindPFlag("reference_time", diffCmd.Flags().Lookup("time"))
 	rootCmd.AddCommand(diffCmd)
 }
 
