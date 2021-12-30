@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	ltCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
+	ltCmd.PersistentFlags().StringVarP(&cfg.ReferenceTimeString, "time", "t", "", "reference time with format: 20060102T150405")
 	viper.BindPFlag("reference_time", ltCmd.Flags().Lookup("time"))
 	rootCmd.AddCommand(ltCmd)
 }
@@ -26,10 +26,10 @@ var ltCmd = &cobra.Command{
 		}
 		cfg.Source = args[0]
 
-		if timeString == "" {
+		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
 		}
-		assertedTime, err := parseTime(timeString)
+		assertedTime, err := parseTime(cfg.ReferenceTimeString)
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
@@ -77,9 +77,9 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 
 	skeletonFormatString := "Run the following from the command line in order to create directories on the target directory:\n" +
 		"\t%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n"
-	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, rootDirPath, cfg.Source)
+	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, cfg.ProjectDir, cfg.Source)
 	sliceFormatString := "\nThen, run the following from the command line in order to divide the workload into smaller chunks:\n" +
 		"\t%s slice -f \"%s\" -p \"%s\" -s [positive--integer-batch-size]\n"
-	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, rootDirPath)
+	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, cfg.ProjectDir)
 	return nil
 }

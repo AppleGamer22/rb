@@ -19,8 +19,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var batchesDirPath string
-var copyQueueLen uint
 var generalRequestChannel chan tasks.GeneralRequest
 var responseChan chan tasks.BackupFileResponse
 var wgCopyWorkerQuitConfirmation sync.WaitGroup
@@ -33,9 +31,9 @@ func UpdateOnQuit() {
 }
 
 func init() {
-	cpCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
-	cpCmd.Flags().StringVarP(&batchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
-	cpCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
+	cpCmd.Flags().StringVarP(&cfg.ProjectDir, "project", "p", "", "mandatory flag: project root path")
+	cpCmd.Flags().StringVarP(&cfg.BatchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
+	cpCmd.Flags().UintVarP(&cfg.NumWorkers, "copy-queue-len", "q", 200, "copy queue length")
 
 	viper.BindPFlag("project_dir", cpCmd.Flags().Lookup("project"))
 	viper.BindPFlag("batches_dir_path", cpCmd.Flags().Lookup("batches-dir-path"))
@@ -56,14 +54,14 @@ var cpCmd = &cobra.Command{
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(rootDirPath) == 0 {
-			return errors.New("rootDirPath must be specified")
+		if len(cfg.ProjectDir) == 0 {
+			return errors.New("cfg.ProjectDir must be specified")
 		}
-		if len(batchesDirPath) == 0 {
-			return errors.New("batchesDirPath must be specified")
+		if len(cfg.BatchesDirPath) == 0 {
+			return errors.New("cfg.BatchesDirPath must be specified")
 		}
-		batchesToDoDirPath = filepath.Join(batchesDirPath, sliceBatchesToDoDirName)
-		batchesDoneDirPath = filepath.Join(batchesDirPath, sliceBatchesDoneDirName)
+		batchesToDoDirPath = filepath.Join(cfg.BatchesDirPath, sliceBatchesToDoDirName)
+		batchesDoneDirPath = filepath.Join(cfg.BatchesDirPath, sliceBatchesDoneDirName)
 		in = manager.ServiceInitInput{
 			SourceRootDir: cfg.Source,
 			TargetRootDir: cfg.Target,
@@ -76,19 +74,19 @@ var cpCmd = &cobra.Command{
 }
 
 func cpRunCommand(_ *cobra.Command, _ []string) error {
-	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", batchesDirPath))
+	_ = writeOpLog(fmt.Sprintf("cp start for batches in %s", cfg.BatchesDirPath))
 
-	responseChan = make(chan tasks.BackupFileResponse, copyQueueLen)
+	responseChan = make(chan tasks.BackupFileResponse, cfg.NumWorkers)
 	defer func() {
 		service.WaitForAllResponses()
 		close(responseChan)
 	}()
-	generalRequestChannel = make(chan tasks.GeneralRequest, copyQueueLen)
+	generalRequestChannel = make(chan tasks.GeneralRequest, cfg.NumWorkers)
 	defer func() {
 		wgCopyWorkerQuitConfirmation.Wait()
 		close(generalRequestChannel)
 	}()
-	for i := 1; i <= int(copyQueueLen); i++ {
+	for i := 1; i <= int(cfg.NumWorkers); i++ {
 		wgCopyWorkerQuitConfirmation.Add(1)
 		workers.NewCopyWorker(uint(i), cfg.Source, cfg.Target, generalRequestChannel, UpdateOnQuit)
 	}
@@ -96,7 +94,7 @@ func cpRunCommand(_ *cobra.Command, _ []string) error {
 	err := filepath.WalkDir(batchesToDoDirPath, walkDirFunc)
 	_ = writeOpLog("cp finished for all batches")
 
-	for i := 0; i < int(copyQueueLen); i++ {
+	for i := 0; i < int(cfg.NumWorkers); i++ {
 		generalRequestChannel <- tasks.QuitRequest{}
 	}
 	return err
@@ -124,7 +122,7 @@ func walkDirFunc(path string, d fs.DirEntry, err error) error {
 
 		now := time.Now().Format(timeDateFormat)
 		copyLogDirName := fmt.Sprintf(copyLogDirPattern, now)
-		copyLogDirPath := filepath.Join(rootDirPath, copyLogDirName)
+		copyLogDirPath := filepath.Join(cfg.ProjectDir, copyLogDirName)
 		if err = os.MkdirAll(copyLogDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create copy log Dir. Error: %v", err)
 		}

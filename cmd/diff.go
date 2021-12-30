@@ -9,12 +9,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var timeString string
-
 func init() {
-	diffCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
-	diffCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
-	diffCmd.Flags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
+	diffCmd.Flags().UintVarP(&cfg.NumWorkers, "copy-queue-len", "q", 200, "copy queue length")
+	diffCmd.Flags().UintVarP(&cfg.BatchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
+	diffCmd.Flags().StringVarP(&cfg.ReferenceTimeString, "time", "t", "", "reference time with format: 20060102T150405")
 
 	viper.BindPFlag("num_workers", diffCmd.Flags().Lookup("copy-queue-len"))
 	viper.BindPFlag("batch_size", diffCmd.Flags().Lookup("batch-size"))
@@ -33,10 +31,10 @@ var diffCmd = &cobra.Command{
 		cfg.Source = args[0]
 		cfg.Target = args[1]
 
-		if timeString == "" {
+		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
 		}
-		assertedTime, err := parseTime(timeString)
+		assertedTime, err := parseTime(cfg.ReferenceTimeString)
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
@@ -47,14 +45,14 @@ var diffCmd = &cobra.Command{
 	PreRunE: fullCmd.PreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// list
-		listDirPath = filepath.Join(rootDirPath, listDirName)
+		listDirPath = filepath.Join(cfg.ProjectDir, listDirName)
 		if err := ltCmd.RunE(cmd, args); err != nil {
 			return err
 		}
 
 		// skeleton
-		skeletonWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
-		dirsListFilePath = listDirsPath
+		skeletonWorkDir = filepath.Join(cfg.ProjectDir, dirSkeletonDirName)
+		cfg.DirsListPath = listDirsPath
 		if err := skeletonCmd.RunE(cmd, args); err != nil {
 			return err
 		}
@@ -69,7 +67,7 @@ var diffCmd = &cobra.Command{
 		}
 
 		// cp
-		batchesDirPath = batchesSourceDirPath
+		cfg.BatchesDirPath = batchesSourceDirPath
 		if err := cpCmd.PreRunE(cmd, args); err != nil {
 			return err
 		}

@@ -36,8 +36,6 @@ const (
 	defaultPerm                   = 0755
 )
 
-var rootDirPath string
-
 func init() {
 	rootCmd.AddCommand(initCmd)
 }
@@ -66,7 +64,7 @@ func setup() error {
 	if err = os.Mkdir(rootDirName, defaultPerm); err != nil {
 		return errors.New("failed to create patent directory")
 	}
-	if rootDirPath, err = filepath.Abs(rootDirName); err != nil {
+	if cfg.ProjectDir, err = filepath.Abs(rootDirName); err != nil {
 		return errors.New("failed to create absolute path for work dir")
 	}
 	if err = os.Chdir(rootDirName); err != nil {
@@ -79,7 +77,7 @@ func setup() error {
 		if err = os.Mkdir(subDir, defaultPerm); err != nil {
 			return fmt.Errorf("failed to create directory %s", subDir)
 		}
-		fmt.Println(filepath.Join(rootDirPath, subDir))
+		fmt.Println(filepath.Join(cfg.ProjectDir, subDir))
 	}
 
 	fmt.Printf("\n%s ls \"[source-dir-path]\"\n", os.Args[0])
@@ -100,6 +98,6 @@ func validateWorkDir(enforceProjectDir bool) error {
 			return errors.New("this command need to be executed from within a project directory")
 		}
 	}
-	rootDirPath = wd
+	cfg.ProjectDir = wd
 	return nil
 }

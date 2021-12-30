@@ -10,10 +10,10 @@ import (
 
 func init() {
 	// slice dependency
-	fullCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
+	fullCmd.Flags().UintVarP(&cfg.BatchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
 
 	// cp dependency
-	fullCmd.Flags().UintVarP(&copyQueueLen, "copy-queue-len", "q", 200, "copy queue length")
+	fullCmd.Flags().UintVarP(&cfg.NumWorkers, "copy-queue-len", "q", 200, "copy queue length")
 
 	viper.BindPFlag("batch_size", fullCmd.Flags().Lookup("batch-size"))
 	viper.BindPFlag("num_workers", fullCmd.Flags().Lookup("copy-queue-len"))
@@ -35,14 +35,14 @@ var fullCmd = &cobra.Command{
 	PreRunE: initCmd.RunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// list
-		listDirPath = filepath.Join(rootDirPath, listDirName)
+		listDirPath = filepath.Join(cfg.ProjectDir, listDirName)
 		if err := lsCmd.RunE(cmd, args); err != nil {
 			return err
 		}
 
 		// skeleton
-		skeletonWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
-		dirsListFilePath = listDirsPath
+		skeletonWorkDir = filepath.Join(cfg.ProjectDir, dirSkeletonDirName)
+		cfg.DirsListPath = listDirsPath
 		if err := skeletonCmd.RunE(cmd, args); err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ var fullCmd = &cobra.Command{
 		}
 
 		// cp
-		batchesDirPath = batchesSourceDirPath
+		cfg.BatchesDirPath = batchesSourceDirPath
 		if err := cpCmd.PreRunE(cmd, args); err != nil {
 			return err
 		}
