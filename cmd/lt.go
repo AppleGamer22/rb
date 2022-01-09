@@ -21,10 +21,13 @@ var ltCmd = &cobra.Command{
 	Short: "list recent modifications in source",
 	Long:  "list source recursively for recent modifications in directories and files",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("arguments mismatch, expecting 1 argument")
+		if len(args) != 1 && len(cfg.Source) == 0 {
+			return errors.New("arguments mismatch, expecting 1 argument: [source-dir-path]")
 		}
-		cfg.Source = args[0]
+
+		if len(cfg.Source) == 0 {
+			cfg.Source = args[0]
+		}
 
 		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
@@ -79,7 +82,7 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 		"\t%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n"
 	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, cfg.ProjectDir, cfg.Source)
 	sliceFormatString := "\nThen, run the following from the command line in order to divide the workload into smaller chunks:\n" +
-		"\t%s slice -f \"%s\" -p \"%s\" -s [positive--integer-batch-size]\n"
+		"\t%s slice -f \"%s\" -p \"%s\" -s [positive-integer-batch-size]\n"
 	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, cfg.ProjectDir)
 	return nil
 }

@@ -25,11 +25,16 @@ var diffCmd = &cobra.Command{
 	Short: "differential backup",
 	Long:  "with differential backup only new or modified files and directories are being backed-up",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			return errors.New("arguments mismatch, expecting 2 arguments")
+		if len(cfg.Source) == 0 && len(cfg.Target) == 0 {
+			if len(args) != 2 {
+				return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+			} else {
+				cfg.Source = args[0]
+				cfg.Target = args[1]
+			}
+		} else if (len(cfg.Source) > 0 || len(cfg.Target) > 0) && !(len(cfg.Source) > 0 && len(cfg.Target) > 0) {
+			return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 		}
-		cfg.Source = args[0]
-		cfg.Target = args[1]
 
 		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
