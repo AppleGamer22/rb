@@ -46,15 +46,15 @@ var cpCmd = &cobra.Command{
 	Short: "copy files",
 	Long:  "copy files recursively from source to target dir",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(cfg.Source) == 0 && len(cfg.Target) == 0 {
-			if len(args) != 2 {
+		if len(args) != 2 {
+			if len(cfg.Source) == 0 && len(cfg.Target) == 0 {
 				return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
-			} else {
-				cfg.Source = args[0]
-				cfg.Target = args[1]
+			} else if (len(cfg.Source) > 0 || len(cfg.Target) > 0) && !(len(cfg.Source) > 0 && len(cfg.Target) > 0) {
+				return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
 			}
-		} else if (len(cfg.Source) > 0 || len(cfg.Target) > 0) && !(len(cfg.Source) > 0 && len(cfg.Target) > 0) {
-			return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+		} else {
+			cfg.Source = args[0]
+			cfg.Target = args[1]
 		}
 		return nil
 	},
