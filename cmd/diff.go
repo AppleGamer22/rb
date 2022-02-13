@@ -39,11 +39,10 @@ var diffCmd = &cobra.Command{
 		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
 		}
-		assertedTime, err := parseTime(cfg.ReferenceTimeString)
+		_, err := parseTime(cfg.ReferenceTimeString)
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},

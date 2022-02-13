@@ -32,11 +32,10 @@ var ltCmd = &cobra.Command{
 		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
 		}
-		assertedTime, err := parseTime(cfg.ReferenceTimeString)
+		_, err := parseTime(cfg.ReferenceTimeString)
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
@@ -64,12 +63,14 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 		_ = errs.Close()
 	}()
 
+	referenceTime, _ := parseTime(cfg.ReferenceTimeString)
+
 	in := manager.ServiceInitInput{
 		SourceRootDir: cfg.Source,
 	}
 
 	service := manager.NewService(in)
-	if err = service.ListSources(dirs, files, errs, cfg.ReferenceTime); err != nil {
+	if err = service.ListSources(dirs, files, errs, referenceTime); err != nil {
 		return err
 	}
 
