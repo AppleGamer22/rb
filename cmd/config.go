@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -28,10 +28,10 @@ var cfg rootConfig
 func parseTime(timeString string) (*time.Time, error) {
 	assertedTime, err := time.Parse(timeDateFormat, timeString)
 	if err != nil {
-		return nil, errors.New("failed to parse time flag value")
+		return nil, fmt.Errorf("failed to parse time flag value: %w", err)
 	}
 	if !assertedTime.Before(time.Now()) {
-		return nil, errors.New("reference time flag value is in the future")
+		return nil, fmt.Errorf("reference time flag value is in the future: %w", err)
 	}
 	return &assertedTime, nil
 }
