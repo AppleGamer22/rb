@@ -15,8 +15,8 @@ func init() {
 	// cp dependency
 	fullCmd.Flags().UintVarP(&cfg.NumWorkers, "copy-queue-len", "q", 200, "copy queue length")
 
-	viper.BindPFlag("batch_size", fullCmd.Flags().Lookup("batch-size"))
-	viper.BindPFlag("num_workers", fullCmd.Flags().Lookup("copy-queue-len"))
+	viper.BindPFlag("BatchSize", fullCmd.Flags().Lookup("batch-size"))
+	viper.BindPFlag("NumWorkers", fullCmd.Flags().Lookup("copy-queue-len"))
 	rootCmd.AddCommand(fullCmd)
 }
 
@@ -47,7 +47,6 @@ var fullCmd = &cobra.Command{
 
 		// skeleton
 		skeletonWorkDir = filepath.Join(cfg.ProjectDir, dirSkeletonDirName)
-		cfg.DirsListPath = listDirsPath
 		if err := skeletonCmd.RunE(cmd, args); err != nil {
 			return err
 		}

@@ -17,7 +17,6 @@ func init() {
 
 var listDirPath string
 var listFilesPath string
-var listDirsPath string
 
 var lsCmd = &cobra.Command{
 	Use:   "ls [source-dir-path]",
@@ -46,6 +45,7 @@ var lsCmd = &cobra.Command{
 		if err := os.Chdir(listDirPath); err != nil {
 			return err
 		}
+
 		return nil
 	},
 	RunE: listRunCommand,
@@ -82,7 +82,7 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 
 	skeletonFormatString := "Run the following from the command line in order to create directories on the target directory:\n" +
 		"\t%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n"
-	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, cfg.ProjectDir, cfg.Source)
+	fmt.Printf(skeletonFormatString, os.Args[0], cfg.DirsListPath, cfg.ProjectDir, cfg.Source)
 	sliceFormatString := "\nThen, run the following from the command line in order to divide the workload into smaller chunks:\n" +
 		"\t%s slice -f \"%s\" -p \"%s\" -s [positive-integer-batch-size]\n"
 	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, cfg.ProjectDir)
@@ -92,12 +92,12 @@ func listRunCommand(cmd *cobra.Command, args []string) error {
 func createFilesForList() (dirs, files, errs *os.File, err error) {
 	now := time.Now()
 	listDirsName := fmt.Sprintf(listedDirsFileNamePattern, now.Format(timeDateFormat))
-	listDirsPath = filepath.Join(listDirPath, listDirsName)
-	dirs, err = os.Create(listDirsPath)
+	cfg.DirsListPath = filepath.Join(listDirPath, listDirsName)
+	dirs, err = os.Create(cfg.DirsListPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	fmt.Println(listDirsPath)
+	fmt.Println(cfg.DirsListPath)
 
 	listFilesName := fmt.Sprintf(listedFilesFileNamePattern, now.Format(timeDateFormat))
 	listFilesPath = filepath.Join(listDirPath, listFilesName)

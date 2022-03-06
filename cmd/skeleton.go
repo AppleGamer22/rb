@@ -21,9 +21,9 @@ func init() {
 	skeletonCmd.Flags().StringVarP(&cfg.DirsListPath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
 	skeletonCmd.Flags().StringVarP(&cfg.DirValidationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
 
-	viper.BindPFlag("project_dir", skeletonCmd.Flags().Lookup("project"))
-	viper.BindPFlag("dir_list_path", skeletonCmd.Flags().Lookup("dirs-list-file-path"))
-	viper.BindPFlag("dir_validation_mode", skeletonCmd.Flags().Lookup("dir-validation-mode"))
+	viper.BindPFlag("ProjectDir", skeletonCmd.Flags().Lookup("project"))
+	viper.BindPFlag("DirsListPath", skeletonCmd.Flags().Lookup("dirs-list-file-path"))
+	viper.BindPFlag("DirValidationMode", skeletonCmd.Flags().Lookup("dir-validation-mode"))
 	rootCmd.AddCommand(skeletonCmd)
 
 }

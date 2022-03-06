@@ -35,9 +35,9 @@ func init() {
 	cpCmd.Flags().StringVarP(&cfg.BatchesDirPath, "batches-dir-path", "b", "", "mandatory flag: copy batches directory path")
 	cpCmd.Flags().UintVarP(&cfg.NumWorkers, "copy-queue-len", "q", 200, "copy queue length")
 
-	viper.BindPFlag("project_dir", cpCmd.Flags().Lookup("project"))
-	viper.BindPFlag("batches_dir_path", cpCmd.Flags().Lookup("batches-dir-path"))
-	viper.BindPFlag("num_workers", cpCmd.Flags().Lookup("copy-queue-len"))
+	viper.BindPFlag("ProjectDir", cpCmd.Flags().Lookup("project"))
+	viper.BindPFlag("BatchesDirPath", cpCmd.Flags().Lookup("batches-dir-path"))
+	viper.BindPFlag("NumWorkers", cpCmd.Flags().Lookup("copy-queue-len"))
 	rootCmd.AddCommand(cpCmd)
 }
 

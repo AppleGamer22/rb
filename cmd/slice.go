@@ -28,9 +28,9 @@ func init() {
 	sliceCmd.Flags().StringVarP(&filesListFilePath, "files-list-file-path", "f", "", "mandatory flag: files list file path")
 	sliceCmd.Flags().UintVarP(&cfg.BatchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
 
-	viper.BindPFlag("project_dir", sliceCmd.Flags().Lookup("project"))
-	viper.BindPFlag("file_list_path", sliceCmd.Flags().Lookup("files-list-file-path"))
-	viper.BindPFlag("batch_size", sliceCmd.Flags().Lookup("batch-size"))
+	viper.BindPFlag("ProjectDir", sliceCmd.Flags().Lookup("project"))
+	viper.BindPFlag("FilesListPath", sliceCmd.Flags().Lookup("files-list-file-path"))
+	viper.BindPFlag("BatchSize", sliceCmd.Flags().Lookup("batch-size"))
 	rootCmd.AddCommand(sliceCmd)
 }
 

@@ -14,9 +14,9 @@ func init() {
 	diffCmd.Flags().UintVarP(&cfg.BatchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
 	diffCmd.Flags().StringVarP(&cfg.ReferenceTimeString, "time", "t", "", "reference time with format: 20060102T150405")
 
-	viper.BindPFlag("num_workers", diffCmd.Flags().Lookup("copy-queue-len"))
-	viper.BindPFlag("batch_size", diffCmd.Flags().Lookup("batch-size"))
-	viper.BindPFlag("reference_time", diffCmd.Flags().Lookup("time"))
+	viper.BindPFlag("NumWorkers", diffCmd.Flags().Lookup("copy-queue-len"))
+	viper.BindPFlag("BatchSize", diffCmd.Flags().Lookup("batch-size"))
+	viper.BindPFlag("ReferenceTime", diffCmd.Flags().Lookup("time"))
 	rootCmd.AddCommand(diffCmd)
 }
 
@@ -56,7 +56,6 @@ var diffCmd = &cobra.Command{
 
 		// skeleton
 		skeletonWorkDir = filepath.Join(cfg.ProjectDir, dirSkeletonDirName)
-		cfg.DirsListPath = listDirsPath
 		if err := skeletonCmd.RunE(cmd, args); err != nil {
 			return err
 		}
