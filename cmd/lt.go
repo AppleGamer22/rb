@@ -7,10 +7,12 @@ import (
 
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
-	ltCmd.PersistentFlags().StringVarP(&timeString, "time", "t", "", "reference time with format: 20060102T150405")
+	ltCmd.PersistentFlags().StringVarP(&cfg.ReferenceTimeString, "time", "t", "", "reference time with format: 20060102T150405")
+	viper.BindPFlag("ReferenceTime", ltCmd.Flags().Lookup("time"))
 	rootCmd.AddCommand(ltCmd)
 }
 
@@ -19,19 +21,21 @@ var ltCmd = &cobra.Command{
 	Short: "list recent modifications in source",
 	Long:  "list source recursively for recent modifications in directories and files",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("arguments mismatch, expecting 1 argument")
+		if len(args) != 1 && len(cfg.Source) == 0 {
+			return errors.New("arguments mismatch, expecting 1 argument: [source-dir-path]")
 		}
-		cfg.Src = args[0]
 
-		if timeString == "" {
+		if len(cfg.Source) == 0 {
+			cfg.Source = args[0]
+		}
+
+		if cfg.ReferenceTimeString == "" {
 			return errors.New("time string cannot be empty")
 		}
-		assertedTime, err := parseTime(timeString)
+		_, err := parseTime(cfg.ReferenceTimeString)
 		if err != nil {
 			return fmt.Errorf("failed to parse time flag value: %v", err)
 		}
-		cfg.ReferenceTime = assertedTime
 
 		return nil
 	},
@@ -59,12 +63,14 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 		_ = errs.Close()
 	}()
 
+	referenceTime, _ := parseTime(cfg.ReferenceTimeString)
+
 	in := manager.ServiceInitInput{
-		SourceRootDir: cfg.Src,
+		SourceRootDir: cfg.Source,
 	}
 
 	service := manager.NewService(in)
-	if err = service.ListSources(dirs, files, errs, cfg.ReferenceTime); err != nil {
+	if err = service.ListSources(dirs, files, errs, referenceTime); err != nil {
 		return err
 	}
 
@@ -75,9 +81,9 @@ func ltRunCmd(cmd *cobra.Command, args []string) error {
 
 	skeletonFormatString := "Run the following from the command line in order to create directories on the target directory:\n" +
 		"\t%s skeleton -d \"%s\" -p \"%s\" \"%s\" \"[target-dir-path]\"\n"
-	fmt.Printf(skeletonFormatString, os.Args[0], listDirsPath, rootDirPath, cfg.Src)
+	fmt.Printf(skeletonFormatString, os.Args[0], cfg.DirsListPath, cfg.ProjectDir, cfg.Source)
 	sliceFormatString := "\nThen, run the following from the command line in order to divide the workload into smaller chunks:\n" +
-		"\t%s slice -f \"%s\" -p \"%s\" -s [positive--integer-batch-size]\n"
-	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, rootDirPath)
+		"\t%s slice -f \"%s\" -p \"%s\" -s [positive-integer-batch-size]\n"
+	fmt.Printf(sliceFormatString, os.Args[0], listFilesPath, cfg.ProjectDir)
 	return nil
 }

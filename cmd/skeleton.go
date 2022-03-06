@@ -11,16 +11,19 @@ import (
 	"github.com/AppleGamer22/recursive-backup/internal/manager"
 	"github.com/AppleGamer22/recursive-backup/internal/rberrors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var skeletonWorkDir string
-var dirsListFilePath string
-var validationMode string
 
 func init() {
-	skeletonCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
-	skeletonCmd.Flags().StringVarP(&dirsListFilePath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
-	skeletonCmd.Flags().StringVarP(&validationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
+	skeletonCmd.Flags().StringVarP(&cfg.ProjectDir, "project", "p", "", "mandatory flag: project root path")
+	skeletonCmd.Flags().StringVarP(&cfg.DirsListPath, "dirs-list-file-path", "d", "", "mandatory flag: directories list file path")
+	skeletonCmd.Flags().StringVarP(&cfg.DirValidationMode, "dir-validation-mode", "v", rberrors.Report, "validation mode for directories short list (none, report, block)")
+
+	viper.BindPFlag("ProjectDir", skeletonCmd.Flags().Lookup("project"))
+	viper.BindPFlag("DirsListPath", skeletonCmd.Flags().Lookup("dirs-list-file-path"))
+	viper.BindPFlag("DirValidationMode", skeletonCmd.Flags().Lookup("dir-validation-mode"))
 	rootCmd.AddCommand(skeletonCmd)
 
 }
@@ -30,20 +33,25 @@ var skeletonCmd = &cobra.Command{
 	Short: "create target directory skeleton",
 	Long:  "create directory skeleton in target",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if validationMode != rberrors.None && validationMode != rberrors.Report && validationMode != rberrors.Block {
-			return fmt.Errorf("--on-missing-dir flag can be on of none, report or block, got %s", validationMode)
+		if cfg.DirValidationMode != rberrors.None && cfg.DirValidationMode != rberrors.Report && cfg.DirValidationMode != rberrors.Block {
+			return fmt.Errorf("--on-missing-dir flag can be on of none, report or block, got %s", cfg.DirValidationMode)
 		}
 
 		if len(args) != 2 {
-			return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+			if len(cfg.Source) == 0 && len(cfg.Target) == 0 {
+				return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+			} else if (len(cfg.Source) > 0 || len(cfg.Target) > 0) && !(len(cfg.Source) > 0 && len(cfg.Target) > 0) {
+				return errors.New("arguments mismatch, expecting 2 arguments: [source-dir-path] [target-dir-path]")
+			}
+		} else {
+			cfg.Source = args[0]
+			cfg.Target = args[1]
 		}
-		cfg.Src = args[0]
-		cfg.Target = args[1]
 
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		skeletonWorkDir = filepath.Join(rootDirPath, dirSkeletonDirName)
+		skeletonWorkDir = filepath.Join(cfg.ProjectDir, dirSkeletonDirName)
 		return nil
 	},
 	RunE: skeletonRunCommand,
@@ -70,12 +78,12 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 	}()
 
 	in := manager.ServiceInitInput{
-		SourceRootDir: cfg.Src,
+		SourceRootDir: cfg.Source,
 		TargetRootDir: cfg.Target,
 	}
 	service := manager.NewService(in)
 	var reader io.Reader
-	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile, validationMode); err != nil {
+	if reader, err = service.CreateTargetDirSkeleton(inDirsListFile, errorsFile, cfg.DirValidationMode); err != nil {
 		return err
 	}
 	if _, err = io.Copy(outDirsListFile, reader); err != nil {
@@ -91,7 +99,7 @@ func skeletonRunCommand(cmd *cobra.Command, args []string) error {
 }
 
 func setupForDirSkeleton() (inDirsList, outDirsList, errs *os.File, err error) {
-	inDirsList, err = os.Open(dirsListFilePath)
+	inDirsList, err = os.Open(cfg.DirsListPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}

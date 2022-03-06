@@ -6,3 +6,6 @@ b
 bin
 vendor
 rb_*
+rb.ini
+rb.yml
+rb.yaml

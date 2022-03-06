@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const defaultBatchSize = 1000
@@ -21,12 +22,15 @@ var batchesToDoDirPath string
 var batchesDoneDirPath string
 var batchesErrorsDirPath string
 var filesListFilePath string
-var batchSize uint
 
 func init() {
-	sliceCmd.Flags().StringVarP(&rootDirPath, "project", "p", "", "mandatory flag: project root path")
+	sliceCmd.Flags().StringVarP(&cfg.ProjectDir, "project", "p", "", "mandatory flag: project root path")
 	sliceCmd.Flags().StringVarP(&filesListFilePath, "files-list-file-path", "f", "", "mandatory flag: files list file path")
-	sliceCmd.Flags().UintVarP(&batchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
+	sliceCmd.Flags().UintVarP(&cfg.BatchSize, "batch-size", "s", defaultBatchSize, "maximum number of files in a batch")
+
+	viper.BindPFlag("ProjectDir", sliceCmd.Flags().Lookup("project"))
+	viper.BindPFlag("FilesListPath", sliceCmd.Flags().Lookup("files-list-file-path"))
+	viper.BindPFlag("BatchSize", sliceCmd.Flags().Lookup("batch-size"))
 	rootCmd.AddCommand(sliceCmd)
 }
 
@@ -41,7 +45,7 @@ var sliceCmd = &cobra.Command{
 		return nil
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(rootDirPath) == 0 {
+		if len(cfg.ProjectDir) == 0 {
 			return errors.New("project root path flag must be specified")
 		}
 		if len(filesListFilePath) == 0 {
@@ -50,7 +54,7 @@ var sliceCmd = &cobra.Command{
 
 		now := time.Now().Format(timeDateFormat)
 		batchesDirName := fmt.Sprintf(sliceBatchesDirNamePattern, now)
-		batchesSourceDirPath = filepath.Join(rootDirPath, batchesDirName)
+		batchesSourceDirPath = filepath.Join(cfg.ProjectDir, batchesDirName)
 		batchesDoneDirPath = filepath.Join(batchesSourceDirPath, sliceBatchesDoneDirName)
 		if err := os.MkdirAll(batchesDoneDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create batches target dir. %s", err.Error())
@@ -62,7 +66,7 @@ var sliceCmd = &cobra.Command{
 		}
 
 		batchesErrorDirName := fmt.Sprintf(sliceBatchesErrorDirPattern, now)
-		batchesErrorsDirPath = filepath.Join(rootDirPath, batchesErrorDirName)
+		batchesErrorsDirPath = filepath.Join(cfg.ProjectDir, batchesErrorDirName)
 		if err := os.MkdirAll(batchesErrorsDirPath, 0755); err != nil {
 			return fmt.Errorf("failed to create batches errors dir. %s", err.Error())
 		}
@@ -99,7 +103,7 @@ func sliceRunCommand(_ *cobra.Command, _ []string) error {
 
 	helpFormat := "\nRun the following from the command line in order to copy the files:\n" +
 		"\t%s cp -b \"%s\" -p \"%s\" -q 200 [source-dir-path] [target-dir-path]\n"
-	fmt.Printf(helpFormat, os.Args[0], batchesSourceDirPath, rootDirPath)
+	fmt.Printf(helpFormat, os.Args[0], batchesSourceDirPath, cfg.ProjectDir)
 	return nil
 }
 
@@ -117,7 +121,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 	}
 
 	var numDigits uint = 1
-	batchCount := math.Ceil(float64(fileCount) / float64(batchSize))
+	batchCount := math.Ceil(float64(fileCount) / float64(cfg.BatchSize))
 	if fileCount >= 1 {
 		numDigits = uint(math.Ceil(math.Log10(batchCount)))
 	}
@@ -137,7 +141,7 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 			if err != nil {
 				_, _ = fmt.Fprintf(errorsFile, "failed to create batch file. batch_number: %d\n", batchCounter)
 				fmt.Println("failed to create batch file. batch_number:", batchCounter)
-				lineCounter = (lineCounter + 1) % batchSize
+				lineCounter = (lineCounter + 1) % cfg.BatchSize
 				continue
 			}
 			fmt.Println(batchFilePath)
@@ -147,11 +151,11 @@ func sliceFileCopyBatches(inFilesListFile *os.File, errorsFile *os.File) error {
 		line := scanner.Text()
 		if _, err = fmt.Fprintln(writer, line); err != nil {
 			_, _ = fmt.Fprintf(errorsFile, "failed to write line. line: %s, error: %s\n", line, err.Error())
-			lineCounter = (lineCounter + 1) % batchSize
+			lineCounter = (lineCounter + 1) % cfg.BatchSize
 			continue
 		}
 
-		lineCounter = (lineCounter + 1) % batchSize
+		lineCounter = (lineCounter + 1) % cfg.BatchSize
 	}
 	_ = writer.Flush()
 	_ = batchFile.Close()
